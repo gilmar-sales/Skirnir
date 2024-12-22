@@ -1,2 +1,2 @@
 # Skirnir
-Skirnir provides an IoC Container, it uses the cloop hole and allow register services for dependency injection
+Skirnir provides an IoC Container, it uses [The C++ Type Loophole](https://alexpolt.github.io/type-loophole.html) to get constructor parameters and allow registering services for **dependency injection**
