@@ -34,6 +34,7 @@ public:
     }
 
     ~Singleton() = default;
+
     void Add() {
     }
 };
@@ -41,8 +42,8 @@ public:
 int main() {
     auto services = ServiceCollection();
 
-    services.AddTransient<IRepository, Repository>();
-    services.AddSingleton<Singleton>();
+    services.AddTransient<IRepository, Repository>()
+            .AddSingleton<Singleton>();
 
     const auto serviceProvider = services.CreateServiceProvider();
 
