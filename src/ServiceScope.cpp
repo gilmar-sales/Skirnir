@@ -1,6 +1,6 @@
-#include "ServiceScope.hpp"
+#include "../include/ServiceScope.hpp"
 
-#include "ServiceProvider.hpp"
+#include "../include/ServiceProvider.hpp"
 
 ServiceScope::ServiceScope(const std::shared_ptr<ServiceDefinitionMap> &serviceDefinitionMap,
                            const std::shared_ptr<ServicesCache> &singletonsCache)

@@ -1,8 +1,7 @@
 #include <chrono>
 #include <iostream>
 
-#include "ServiceCollection.hpp"
-#include "ServiceScope.hpp"
+#include <Skirnir.hpp>
 
 class IRepository {
 public:
@@ -49,7 +48,7 @@ int main() {
 
     const auto scope = serviceProvider->CreateServiceScope();
 
-    for (int i = 0; i < 50'000'000; ++i) {
+    for (int i = 0; i < 1'000'000; ++i) {
         const auto repository = scope->GetServiceProvider()->GetService<IRepository>();
     }
 
