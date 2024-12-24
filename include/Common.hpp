@@ -2,6 +2,8 @@
 #include <functional>
 #include <memory>
 
+#include <tsl/bhopscotch_map.h>
+
 #include "ServiceId.hpp"
 
 enum class LifeTime {
@@ -21,5 +23,5 @@ struct ServiceDefinition {
     LifeTime lifetime = LifeTime::Transient;
 };
 
-using ServiceDefinitionMap = std::unordered_map<ServideId, ServiceDefinition>;
-using ServicesCache = std::unordered_map<ServideId, std::shared_ptr<void> >;
+using ServiceDefinitionMap = tsl::bhopscotch_map<ServideId, ServiceDefinition>;
+using ServicesCache = tsl::bhopscotch_map<ServideId, std::shared_ptr<void> >;
