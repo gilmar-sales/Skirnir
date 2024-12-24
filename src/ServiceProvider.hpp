@@ -4,7 +4,6 @@
 
 #include "Common.hpp"
 #include "ServiceId.hpp"
-#include "flat_map/flat_map.hpp"
 
 class ServiceProvider {
 public:
