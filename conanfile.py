@@ -5,6 +5,9 @@ from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain
 
 class ConanApplication(ConanFile):
+    name = "skirnir"
+    version = "1.0"
+
     package_type = "application"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
