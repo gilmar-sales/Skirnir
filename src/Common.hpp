@@ -1,10 +1,8 @@
 #pragma once
 #include <functional>
 #include <memory>
-#include <optional>
 
 #include "ServiceId.hpp"
-#include "flat_map/flat_map.hpp"
 
 enum class LifeTime {
     Transient,
@@ -23,5 +21,5 @@ struct ServiceDefinition {
     LifeTime lifetime = LifeTime::Transient;
 };
 
-using ServiceDefinitionMap = flat_map::flat_map<ServideId, ServiceDefinition>;
-using ServicesCache = flat_map::flat_map<ServideId, std::shared_ptr<void> >;
+using ServiceDefinitionMap = std::unordered_map<ServideId, ServiceDefinition>;
+using ServicesCache = std::unordered_map<ServideId, std::shared_ptr<void> >;

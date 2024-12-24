@@ -48,21 +48,25 @@ int main() {
 
     const auto scope = serviceProvider->CreateServiceScope();
 
+    for (int i = 0; i < 50'000'000; ++i) {
+        const auto repository = scope->GetServiceProvider()->GetService<IRepository>();
+    }
+
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 10'000'000; ++i) {
         const auto repository = scope->GetServiceProvider()->GetService<IRepository>();
     }
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin) << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin) << std::endl;
 
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 100'000; ++i) {
+    for (int i = 0; i < 10'000'000; ++i) {
         const auto repository = serviceProvider->GetService<Singleton>();
     }
     end = std::chrono::high_resolution_clock::now();
 
-    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin) << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin) << std::endl;
 
     return 0;
 }
