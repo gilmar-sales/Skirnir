@@ -21,71 +21,34 @@ public:
     template<typename Concrete>
         requires(std::tuple_size_v<refl::as_tuple<Concrete> > > 0)
     void AddSingleton() {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        using ConstructorArgs = refl::as_tuple<Concrete>;
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(), {
-                .factory = CreateServiceFactory<Concrete>(ConstructorArgs{}),
-                .lifetime = LifeTime::Singleton
-            }
-        });
+        AddServiceWithConstructorArgs<Concrete, Concrete>(LifeTime::Singleton);
     }
 
     template<typename Concrete>
     void AddSingleton() {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(), {
-                .factory = [](ServiceProvider &) { return std::make_shared<Concrete>(); },
-                .lifetime = LifeTime::Singleton
-            }
-        });
+        AddService<Concrete, Concrete>(LifeTime::Singleton);
     }
 
     template<typename Concrete>
     void AddSingleton(std::shared_ptr<Concrete> element) {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(), {
-                .factory = [element = element](ServiceProvider &) { return element; },
-                .lifetime = LifeTime::Singleton
-            }
-        });
+        AddServiceWithInstance<Concrete, Concrete>(element, LifeTime::Singleton);
     }
 
     template<typename Interface, typename Concrete>
         requires(not std::is_same_v<Interface, Concrete> and std::is_base_of_v<Interface, Concrete>)
     void AddSingleton(std::shared_ptr<Concrete> element) {
-        assert(!Contains<Interface>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(),
-            {
-                .factory = [element = element](ServiceProvider &) { return element; },
-                .lifetime = LifeTime::Singleton
-            }
-        });
+        AddServiceWithInstance<Interface, Concrete>(element, LifeTime::Singleton);
     }
 
     template<typename Concrete>
     void AddTransient(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(), {.factory = factory, .lifetime = LifeTime::Transient}
-        });
+        AddServiceWithFactory<Concrete, Concrete>(LifeTime::Transient, factory);
     }
 
     template<typename Interface, typename Concrete>
         requires(std::is_base_of_v<Interface, Concrete>)
     void AddTransient(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert(
-            {GetServiceId<Interface>(), {.factory = factory, .lifetime = LifeTime::Transient}});
+        AddServiceWithFactory<Interface, Concrete>(LifeTime::Transient, factory);
     }
 
     template<typename Interface, typename Concrete>
@@ -107,20 +70,13 @@ public:
 
     template<typename Concrete>
     void AddScoped(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
-        assert(!Contains<Concrete>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert({
-            GetServiceId<Concrete>(), {.factory = factory, .lifetime = LifeTime::Scoped}
-        });
+        AddServiceWithFactory<Concrete, Concrete>(LifeTime::Scoped, factory);
     }
 
     template<typename Interface, typename Concrete>
         requires(std::is_base_of_v<Interface, Concrete>)
     void AddScoped(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
-        assert(!Contains<Interface>() && "Can't register twice");
-
-        mServiceDefinitionMap->insert(
-            {GetServiceId<Interface>(), {.factory = factory, .lifetime = LifeTime::Scoped}});
+        AddServiceWithFactory<Interface, Concrete>(LifeTime::Scoped, factory);
     }
 
     template<typename Interface, typename Concrete>
@@ -175,12 +131,26 @@ protected:
             }
         });
     }
+
     template<typename Interface, typename Concrete>
     void AddServiceWithFactory(const LifeTime lifeTime, const ServiceFactory& factory) {
         assert(!Contains<Interface>() && "Can't register twice");
 
         mServiceDefinitionMap->insert(
             {GetServiceId<Interface>(), {.factory = factory, .lifetime = lifeTime}});
+    }
+
+    template <typename Interface, typename Concrete>
+    void AddServiceWithInstance(std::shared_ptr<Concrete> instance, const LifeTime lifeTime) {
+        assert(!Contains<Interface>() && "Can't register twice");
+
+        mServiceDefinitionMap->insert({
+            GetServiceId<Concrete>(),
+            {
+                .factory = [instance = instance](ServiceProvider &) { return instance; },
+                .lifetime = lifeTime
+            }
+        });
     }
 
     template<typename Concrete, typename... Args>
