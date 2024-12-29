@@ -6,15 +6,15 @@ set(CMAKE_CXX_STANDARD 23)
 
 find_package(tsl-hopscotch-map REQUIRED)
 
-add_library(Skirnir
+add_library(skirnir
         src/ServiceScope.cpp
         src/ServiceProvider.cpp)
 
-target_include_directories(Skirnir PUBLIC include)
+target_include_directories(skirnir PUBLIC include)
 
-target_link_libraries(Skirnir PUBLIC tsl::hopscotch_map)
+target_link_libraries(skirnir PUBLIC tsl::hopscotch_map)
 
-install(TARGETS Skirnir)
+install(TARGETS skirnir)
 
 install(DIRECTORY include/
         DESTINATION include
