@@ -5,7 +5,7 @@
 #include "Common.hpp"
 #include "ServiceId.hpp"
 
-class ServiceProvider {
+class ServiceProvider : public std::enable_shared_from_this<ServiceProvider> {
 public:
     explicit ServiceProvider(const std::shared_ptr<ServiceDefinitionMap> &serviceDefinitionMap,
                              const std::shared_ptr<ServicesCache> &singletonsCache = std::make_shared<ServicesCache>(),
@@ -19,6 +19,9 @@ public:
     template<typename TService>
     std::shared_ptr<TService> GetService() {
         assert(Contains<TService>() && "Unable to get unregistered type");
+
+        if constexpr (std::is_same_v<TService, ServiceProvider>)
+            return shared_from_this();
 
         switch (const auto &serviceDefinition = mServiceDefinitionMap->at(GetServiceId<TService>()); serviceDefinition.
             lifetime) {
