@@ -4,7 +4,7 @@ from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
 
 class skirnirRecipe(ConanFile):
     name = "skirnir"
-    version = "1.0"
+    version = "1.0.1"
     package_type = "library"
 
     # Optional metadata
@@ -55,4 +55,3 @@ class skirnirRecipe(ConanFile):
         requirements = self.conan_data.get('requirements', [])
         for requirement in requirements:
             self.requires(requirement)
-

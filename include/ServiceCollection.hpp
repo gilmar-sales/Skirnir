@@ -53,7 +53,7 @@ public:
     }
 
     template<typename TService>
-    ServiceCollection &AddTransient(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
+    ServiceCollection &AddTransient(const ServiceFactory &factory) {
         AddServiceWithFactory<TService, TService>(LifeTime::Transient, factory);
 
 
@@ -62,7 +62,7 @@ public:
 
     template<typename TContract, typename TService>
         requires(std::is_base_of_v<TContract, TService>)
-    ServiceCollection &AddTransient(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
+    ServiceCollection &AddTransient(const ServiceFactory &factory) {
         AddServiceWithFactory<TContract, TService>(LifeTime::Transient, factory);
 
 
@@ -96,7 +96,7 @@ public:
     }
 
     template<typename TService>
-    ServiceCollection &AddScoped(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
+    ServiceCollection &AddScoped(const ServiceFactory &factory) {
         AddServiceWithFactory<TService, TService>(LifeTime::Scoped, factory);
 
 
@@ -105,7 +105,7 @@ public:
 
     template<typename TContract, typename TService>
         requires(std::is_base_of_v<TContract, TService>)
-    ServiceCollection &AddScoped(const std::function<std::shared_ptr<void>(ServiceCollection &)> &factory) {
+    ServiceCollection &AddScoped(const ServiceFactory &factory) {
         AddServiceWithFactory<TContract, TService>(LifeTime::Scoped, factory);
 
 
