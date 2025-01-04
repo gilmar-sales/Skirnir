@@ -6,8 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_library(skirnir
         src/ServiceScope.cpp
-        src/ServiceProvider.cpp
-        test/src/ServiceCollectionSpec.cpp)
+        src/ServiceProvider.cpp)
 
 add_library(skirnir::skirnir ALIAS skirnir)
 
