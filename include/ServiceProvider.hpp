@@ -18,10 +18,10 @@ public:
 
     template<typename TService>
     std::shared_ptr<TService> GetService() {
-        assert(Contains<TService>() && "Unable to get unregistered type");
-
         if constexpr (std::is_same_v<TService, ServiceProvider>)
             return shared_from_this();
+
+        assert(Contains<TService>() && "Unable to get unregistered type");
 
         switch (const auto &serviceDefinition = mServiceDefinitionMap->at(GetServiceId<TService>()); serviceDefinition.
             lifetime) {
