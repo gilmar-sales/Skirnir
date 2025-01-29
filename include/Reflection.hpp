@@ -1,5 +1,13 @@
 #pragma once
 
+#ifdef __GNUC__
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wnon-template-friend"
+#endif
+
+//#pragma warning(push)
+//#pragma warning(disable: 4396)
+
 #include <tuple>
 #include <utility>
 
@@ -107,3 +115,9 @@ namespace refl
         T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
 
 } // namespace refl
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+//#pragma warning(pop)
