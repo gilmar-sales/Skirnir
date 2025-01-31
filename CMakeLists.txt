@@ -4,11 +4,13 @@ project(Skirnir LANGUAGES CXX VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_library(skirnir
-        src/ServiceScope.cpp
-        src/ServiceProvider.cpp)
+if (NOT TARGET skirnir)
+    add_library(skirnir
+            src/ServiceScope.cpp
+            src/ServiceProvider.cpp)
 
-add_library(skirnir::skirnir ALIAS skirnir)
+    add_library(skirnir::skirnir ALIAS skirnir)
+endif ()
 
 target_include_directories(skirnir PUBLIC include)
 
