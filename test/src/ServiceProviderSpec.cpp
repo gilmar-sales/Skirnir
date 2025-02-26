@@ -1,22 +1,27 @@
-#include <Skirnir.hpp>
+#include <Skirnir/Skirnir.hpp>
 #include <unordered_set>
 
 #include "gtest/gtest.h"
 
-
-class SingletonService {
+class SingletonService
+{
 };
 
-class ScopedService {
+class ScopedService
+{
 };
 
-class TransientService {
+class TransientService
+{
 };
 
-class ServiceProviderSpec : public ::testing::Test {
-protected:
-    void SetUp() override {
-        const auto serviceCollection = ServiceCollection()
+class ServiceProviderSpec : public ::testing::Test
+{
+  protected:
+    void SetUp() override
+    {
+        const auto serviceCollection =
+            skr::ServiceCollection()
                 .AddSingleton<SingletonService>()
                 .AddScoped<ScopedService>()
                 .AddTransient<TransientService>();
@@ -26,39 +31,52 @@ protected:
 
     void TearDown() override { mServiceProvider.reset(); }
 
-    std::shared_ptr<ServiceProvider> mServiceProvider;
+    std::shared_ptr<skr::ServiceProvider> mServiceProvider;
 };
 
-TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSingleton) {
+TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSingleton)
+{
     ASSERT_NE(mServiceProvider->GetService<SingletonService>(), nullptr);
 }
 
-TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSameSingletonAtAnyTime) {
-    for (int i = 0; i < 10000; ++i) {
-        ASSERT_EQ(mServiceProvider->GetService<SingletonService>(), mServiceProvider->GetService<SingletonService>());
+TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSameSingletonAtAnyTime)
+{
+    for (int i = 0; i < 10000; ++i)
+    {
+        ASSERT_EQ(mServiceProvider->GetService<SingletonService>(),
+                  mServiceProvider->GetService<SingletonService>());
     }
 }
 
-TEST_F(ServiceProviderSpec, ServiceProviderShouldGetTransient) {
+TEST_F(ServiceProviderSpec, ServiceProviderShouldGetTransient)
+{
     ASSERT_NE(mServiceProvider->GetService<TransientService>(), nullptr);
 }
 
-TEST_F(ServiceProviderSpec, ServiceProviderShouldGetItSelf) {
-    ASSERT_NE(mServiceProvider->GetService<ServiceProvider>(), nullptr);
-    ASSERT_EQ(mServiceProvider->GetService<ServiceProvider>(), mServiceProvider);
+TEST_F(ServiceProviderSpec, ServiceProviderShouldGetItSelf)
+{
+    ASSERT_NE(mServiceProvider->GetService<skr::ServiceProvider>(), nullptr);
+    ASSERT_EQ(mServiceProvider->GetService<skr::ServiceProvider>(),
+              mServiceProvider);
 }
 
-TEST_F(ServiceProviderSpec, ServiceProviderShouldGetDifferentTransientsAtAnyTime) {
-    auto transients = std::pmr::unordered_set<std::shared_ptr<TransientService> >();
+TEST_F(ServiceProviderSpec,
+       ServiceProviderShouldGetDifferentTransientsAtAnyTime)
+{
+    auto transients = std::unordered_set<std::shared_ptr<TransientService>>();
 
-    for (int i = 0; i < 10000; ++i) {
-        auto transientService = mServiceProvider->GetService<TransientService>();
+    for (int i = 0; i < 10000; ++i)
+    {
+        auto transientService =
+            mServiceProvider->GetService<TransientService>();
         ASSERT_FALSE(transients.contains(transientService));
         transients.insert(transientService);
     }
 }
 
-TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped) {
+TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
+{
     ASSERT_DEATH(mServiceProvider->GetService<ScopedService>(),
-                 "Unable to get scoped service into Root Service Provider, create an scope first.");
+                 "Unable to get scoped service into Root Service Provider, "
+                 "create an scope first.");
 }

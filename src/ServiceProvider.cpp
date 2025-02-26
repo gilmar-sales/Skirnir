@@ -1,6 +1,13 @@
-#include "ServiceProvider.hpp"
-#include "ServiceScope.hpp"
+#include "Skirnir/ServiceProvider.hpp"
+#include "Skirnir/ServiceScope.hpp"
 
-std::shared_ptr<ServiceScope> ServiceProvider::CreateServiceScope() {
-    return std::make_shared<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
-};
+namespace SKIRNIR_NAMESPACE
+{
+
+    std::shared_ptr<ServiceScope> ServiceProvider::CreateServiceScope()
+    {
+        return std::make_shared<ServiceScope>(
+            mServiceDefinitionMap, mSingletonsCache);
+    };
+
+} // namespace SKIRNIR_NAMESPACE
