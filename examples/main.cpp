@@ -48,6 +48,8 @@ int main()
 
     const auto scope = serviceProvider->CreateServiceScope();
 
+    scope->GetServiceProvider()->GetService<std::vector<int>>();
+
     for (int i = 0; i < 1'000'000; ++i)
     {
         const auto repository =

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cassert>
+#include <source_location>
 
 #include "Common.hpp"
+#include "Logger.hpp"
 #include "ServiceId.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -19,7 +21,10 @@ namespace SKIRNIR_NAMESPACE
                 std::make_shared<ServicesCache>(),
             const bool isScoped = false) :
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
-            mSingletonsCache(singletonsCache), mScopeCache(scopedsCache) {};
+            mSingletonsCache(singletonsCache), mScopeCache(scopedsCache)
+        {
+            mLogger = GetService<Logger>();
+        };
 
         template <typename TService>
         std::shared_ptr<TService> GetService()
@@ -27,7 +32,9 @@ namespace SKIRNIR_NAMESPACE
             if constexpr (std::is_same_v<TService, ServiceProvider>)
                 return shared_from_this();
 
-            assert(Contains<TService>() && "Unable to get unregistered type");
+            mLogger->Assert(Contains<TService>(),
+                            "{}: Unable get unregistered service.",
+                            __PRETTY_FUNCTION__);
 
             switch (const auto& serviceDefinition =
                         mServiceDefinitionMap->at(GetServiceId<TService>());
@@ -55,9 +62,12 @@ namespace SKIRNIR_NAMESPACE
                         mSingletonsCache->at(GetServiceId<TService>()));
                 }
                 case LifeTime::Scoped: {
-                    assert(mIsScoped &&
-                           "Unable to get scoped service into Root Service "
-                           "Provider, create an scope first.");
+
+                    mLogger->Assert(
+                        mIsScoped,
+                        "{}: Unable to get 'Scoped' service into Root Service "
+                        "Provider. Create an scope first.",
+                        __PRETTY_FUNCTION__);
 
                     const auto it = mScopeCache->find(GetServiceId<TService>());
 
@@ -84,14 +94,15 @@ namespace SKIRNIR_NAMESPACE
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
         }
 
-        std::shared_ptr<ServiceScope> CreateServiceScope();
+        Ref<ServiceScope> CreateServiceScope();
 
       private:
         bool mIsScoped;
 
-        std::shared_ptr<ServiceDefinitionMap> mServiceDefinitionMap;
-        std::shared_ptr<ServicesCache>        mSingletonsCache;
-        std::shared_ptr<ServicesCache>        mScopeCache;
+        Ref<Logger>               mLogger;
+        Ref<ServiceDefinitionMap> mServiceDefinitionMap;
+        Ref<ServicesCache>        mSingletonsCache;
+        Ref<ServicesCache>        mScopeCache;
     };
 
 } // namespace SKIRNIR_NAMESPACE

@@ -11,6 +11,10 @@
 template <typename T>
 using Ref = std::shared_ptr<T>;
 
+#ifdef _MSC_VER
+    #define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
+
 namespace SKIRNIR_NAMESPACE
 {
 
