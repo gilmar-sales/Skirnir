@@ -54,8 +54,8 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Debug)
                 return;
 
-            fmt::print(fg(fmt::color::forest_green), "[Debug] {}: ",
-                       std::chrono::high_resolution_clock::now());
+            fmt::print(fg(fmt::color::forest_green),
+                       "[Debug] {}: ", std::chrono::system_clock::now());
 
             fmt::print(fg(fmt::color::forest_green), fmt, args...);
 
@@ -68,8 +68,8 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Trace)
                 return;
 
-            fmt::print(fg(fmt::color::gainsboro), "[Trace] {}: ",
-                       std::chrono::high_resolution_clock::now());
+            fmt::print(fg(fmt::color::gainsboro),
+                       "[Trace] {}: ", std::chrono::system_clock::now());
 
             fmt::print(fg(fmt::color::gainsboro), fmt, args...);
 
@@ -82,8 +82,8 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Information)
                 return;
 
-            fmt::print(fg(fmt::color::sky_blue), "[Information] {}: ",
-                       std::chrono::high_resolution_clock::now());
+            fmt::print(fg(fmt::color::sky_blue),
+                       "[Information] {}: ", std::chrono::system_clock::now());
 
             fmt::print(fg(fmt::color::sky_blue), fmt, args...);
 
@@ -96,8 +96,8 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Warning)
                 return;
 
-            fmt::print(fg(fmt::color::gold), "[Warning] {}: ",
-                       std::chrono::high_resolution_clock::now());
+            fmt::print(fg(fmt::color::gold),
+                       "[Warning] {}: ", std::chrono::system_clock::now());
 
             fmt::print(fg(fmt::color::gold), fmt, args...);
 
@@ -110,8 +110,8 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Error)
                 return;
 
-            fmt::print(fg(fmt::color::crimson), "[Error] {}: ",
-                       std::chrono::high_resolution_clock::now());
+            fmt::print(fg(fmt::color::crimson),
+                       "[Error] {}: ", std::chrono::system_clock::now());
 
             fmt::print(fg(fmt::color::crimson), fmt, args...);
 
