@@ -23,7 +23,7 @@ namespace SKIRNIR_NAMESPACE
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
             mSingletonsCache(singletonsCache), mScopeCache(scopedsCache)
         {
-            mLogger = GetService<Logger>();
+            mLogger = GetService<Logger<ServiceProvider>>();
         };
 
         template <typename TService>
@@ -33,8 +33,8 @@ namespace SKIRNIR_NAMESPACE
                 return shared_from_this();
 
             mLogger->Assert(Contains<TService>(),
-                            "{}: Unable get unregistered service.",
-                            __PRETTY_FUNCTION__);
+                            "Unable get unregistered service: '{}'",
+                            type_name<TService>());
 
             switch (const auto& serviceDefinition =
                         mServiceDefinitionMap->at(GetServiceId<TService>());
@@ -99,10 +99,10 @@ namespace SKIRNIR_NAMESPACE
       private:
         bool mIsScoped;
 
-        Ref<Logger>               mLogger;
-        Ref<ServiceDefinitionMap> mServiceDefinitionMap;
-        Ref<ServicesCache>        mSingletonsCache;
-        Ref<ServicesCache>        mScopeCache;
+        Ref<Logger<ServiceProvider>> mLogger;
+        Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
+        Ref<ServicesCache>           mSingletonsCache;
+        Ref<ServicesCache>           mScopeCache;
     };
 
 } // namespace SKIRNIR_NAMESPACE

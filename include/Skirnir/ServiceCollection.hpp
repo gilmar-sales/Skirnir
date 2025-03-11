@@ -19,9 +19,10 @@ namespace SKIRNIR_NAMESPACE
         ServiceCollection() :
             mServiceDefinitionMap(std::make_shared<ServiceDefinitionMap>())
         {
-            AddTransient<Logger>();
-            mLogger =
-                std::make_shared<Logger>(std::make_shared<LoggerOptions>());
+            AddTransient<Logger<ServiceCollection>>();
+            AddTransient<Logger<ServiceProvider>>();
+            mLogger = std::make_shared<Logger<ServiceCollection>>(
+                std::make_shared<LoggerOptions>());
         };
 
         ~ServiceCollection() = default;
@@ -205,6 +206,13 @@ namespace SKIRNIR_NAMESPACE
                             return std::make_shared<TService>();
                         },
                     .lifetime = lifeTime } });
+
+            if constexpr (!std::is_base_of_v<ILogger, TContract>)
+                AddTransient<Logger<TContract>>();
+
+            if constexpr (!std::is_base_of_v<ILogger, TService> &&
+                          !std::is_same_v<TContract, TService>)
+                AddTransient<Logger<TService>>();
         }
 
         template <typename TContract, typename TService>
@@ -222,6 +230,13 @@ namespace SKIRNIR_NAMESPACE
                   { .factory =
                         CreateServiceFactory<TService>(ConstructorArgs {}),
                     .lifetime = lifeTime } });
+
+            if constexpr (!std::is_base_of_v<ILogger, TContract>)
+                AddTransient<Logger<TContract>>();
+
+            if constexpr (!std::is_base_of_v<ILogger, TService> &&
+                          !std::is_same_v<TContract, TService>)
+                AddTransient<Logger<TService>>();
         }
 
         template <typename TContract, typename TService>
@@ -235,6 +250,13 @@ namespace SKIRNIR_NAMESPACE
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
                   { .factory = factory, .lifetime = lifeTime } });
+
+            if constexpr (!std::is_base_of_v<ILogger, TContract>)
+                AddTransient<Logger<TContract>>();
+
+            if constexpr (!std::is_base_of_v<ILogger, TService> &&
+                          !std::is_same_v<TContract, TService>)
+                AddTransient<Logger<TService>>();
         }
 
         template <typename TContract, typename TService>
@@ -250,6 +272,13 @@ namespace SKIRNIR_NAMESPACE
                   { .factory = [instance = instance](
                                    ServiceProvider&) { return instance; },
                     .lifetime = lifeTime } });
+
+            if constexpr (!std::is_base_of_v<ILogger, TContract>)
+                AddTransient<Logger<TContract>>();
+
+            if constexpr (!std::is_base_of_v<ILogger, TService> &&
+                          !std::is_same_v<TContract, TService>)
+                AddTransient<Logger<TService>>();
         }
 
         template <typename TService, typename... Args>
@@ -264,8 +293,8 @@ namespace SKIRNIR_NAMESPACE
         }
 
       private:
-        Ref<Logger>               mLogger;
-        Ref<ServiceDefinitionMap> mServiceDefinitionMap;
+        Ref<Logger<ServiceCollection>> mLogger;
+        Ref<ServiceDefinitionMap>      mServiceDefinitionMap;
     };
 
 } // namespace SKIRNIR_NAMESPACE
