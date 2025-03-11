@@ -62,21 +62,21 @@ namespace SKIRNIR_NAMESPACE
         {
         }
 
-        template <typename... T>
-        inline void Assert(bool assertion, fmt::format_string<T...> fmt,
-                           T&&... args)
+        template <typename... TArgs>
+        inline void Assert(bool assertion, fmt::format_string<TArgs...> fmt,
+                           TArgs&&... args)
         {
 #ifndef NDEBUG
             if (!assertion)
             {
-                LogError(fmt, std::forward<T>(args)...);
+                LogError(fmt, std::forward<TArgs>(args)...);
                 abort();
             }
 #endif
         }
 
-        template <typename... T>
-        inline void LogDebug(fmt::format_string<T...> fmt, T&&... args)
+        template <typename... TArgs>
+        inline void LogDebug(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
             if (mLoggerOptions->logLevel > LogLevel::Debug)
                 return;
@@ -85,13 +85,13 @@ namespace SKIRNIR_NAMESPACE
                        std::chrono::system_clock::now(), typeName);
 
             fmt::print(fg(fmt::color::forest_green), fmt,
-                       std::forward<T>(args)...);
+                       std::forward<TArgs>(args)...);
 
             fmt::print("\n");
         }
 
-        template <typename... T>
-        inline void LogTrace(fmt::format_string<T...> fmt, T&&... args)
+        template <typename... TArgs>
+        inline void LogTrace(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
             if (mLoggerOptions->logLevel > LogLevel::Trace)
                 return;
@@ -100,13 +100,14 @@ namespace SKIRNIR_NAMESPACE
                        std::chrono::system_clock::now(), typeName);
 
             fmt::print(fg(fmt::color::gainsboro), fmt,
-                       std::forward<T>(args)...);
+                       std::forward<TArgs>(args)...);
 
             fmt::print("\n");
         }
 
-        template <typename... T>
-        inline void LogInformation(fmt::format_string<T...> fmt, T&&... args)
+        template <typename... TArgs>
+        inline void LogInformation(fmt::format_string<TArgs...> fmt,
+                                   TArgs&&... args)
         {
             if (mLoggerOptions->logLevel > LogLevel::Information)
                 return;
@@ -114,13 +115,15 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::sky_blue), "[Information] {} '{}': ",
                        std::chrono::system_clock::now(), typeName);
 
-            fmt::print(fg(fmt::color::sky_blue), fmt, std::forward<T>(args)...);
+            fmt::print(fg(fmt::color::sky_blue), fmt,
+                       std::forward<TArgs>(args)...);
 
             fmt::print("\n");
         }
 
-        template <typename... T>
-        inline void LogWarning(fmt::format_string<T...> fmt, T&&... args)
+        template <typename... TArgs>
+        inline void LogWarning(fmt::format_string<TArgs...> fmt,
+                               TArgs&&... args)
         {
             if (mLoggerOptions->logLevel > LogLevel::Warning)
                 return;
@@ -128,13 +131,13 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::gold), "[Warning] {} '{}': ",
                        std::chrono::system_clock::now(), typeName);
 
-            fmt::print(fg(fmt::color::gold), fmt, std::forward<T>(args)...);
+            fmt::print(fg(fmt::color::gold), fmt, std::forward<TArgs>(args)...);
 
             fmt::print("\n");
         }
 
-        template <typename... T>
-        inline void LogError(fmt::format_string<T...> fmt, T&&... args)
+        template <typename... TArgs>
+        inline void LogError(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
             if (mLoggerOptions->logLevel > LogLevel::Error)
                 return;
@@ -142,7 +145,8 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::crimson), "[Error] {} '{}': ",
                        std::chrono::system_clock::now(), typeName);
 
-            fmt::print(fg(fmt::color::crimson), fmt, std::forward<T>(args)...);
+            fmt::print(fg(fmt::color::crimson), fmt,
+                       std::forward<TArgs>(args)...);
 
             fmt::print("\n");
         }

@@ -65,9 +65,9 @@ namespace SKIRNIR_NAMESPACE
 
                     mLogger->Assert(
                         mIsScoped,
-                        "{}: Unable to get 'Scoped' service into Root Service "
+                        "Unable to get 'Scoped' {} service into Root Service "
                         "Provider. Create an scope first.",
-                        __PRETTY_FUNCTION__);
+                        type_name<TService>());
 
                     const auto it = mScopeCache->find(GetServiceId<TService>());
 
