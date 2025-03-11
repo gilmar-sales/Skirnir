@@ -42,7 +42,7 @@ namespace SKIRNIR_NAMESPACE
 #ifndef NDEBUG
             if (!assertion)
             {
-                LogError(fmt, args...);
+                LogError(fmt, std::forward<T>(args)...);
                 abort();
             }
 #endif
@@ -57,7 +57,8 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::forest_green),
                        "[Debug] {}: ", std::chrono::system_clock::now());
 
-            fmt::print(fg(fmt::color::forest_green), fmt, args...);
+            fmt::print(fg(fmt::color::forest_green), fmt,
+                       std::forward<T>(args)...);
 
             fmt::print("\n");
         }
@@ -71,7 +72,8 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::gainsboro),
                        "[Trace] {}: ", std::chrono::system_clock::now());
 
-            fmt::print(fg(fmt::color::gainsboro), fmt, args...);
+            fmt::print(fg(fmt::color::gainsboro), fmt,
+                       std::forward<T>(args)...);
 
             fmt::print("\n");
         }
@@ -85,7 +87,7 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::sky_blue),
                        "[Information] {}: ", std::chrono::system_clock::now());
 
-            fmt::print(fg(fmt::color::sky_blue), fmt, args...);
+            fmt::print(fg(fmt::color::sky_blue), fmt, std::forward<T>(args)...);
 
             fmt::print("\n");
         }
@@ -99,7 +101,7 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::gold),
                        "[Warning] {}: ", std::chrono::system_clock::now());
 
-            fmt::print(fg(fmt::color::gold), fmt, args...);
+            fmt::print(fg(fmt::color::gold), fmt, std::forward<T>(args)...);
 
             fmt::print("\n");
         }
@@ -113,7 +115,7 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::crimson),
                        "[Error] {}: ", std::chrono::system_clock::now());
 
-            fmt::print(fg(fmt::color::crimson), fmt, args...);
+            fmt::print(fg(fmt::color::crimson), fmt, std::forward<T>(args)...);
 
             fmt::print("\n");
         }
@@ -123,7 +125,7 @@ namespace SKIRNIR_NAMESPACE
         inline void Log(fmt::v11::text_style     style,
                         fmt::format_string<T...> fmt, T&&... args)
         {
-            fmt::print(style, fmt, args...);
+            fmt::print(style, fmt, std::forward<T>(args)...);
         }
 
         Ref<LoggerOptions> mLoggerOptions;
