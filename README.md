@@ -18,7 +18,7 @@ Skirnir it's inspired by the microsoft dependency injection, services should be 
 ## Concrete type
 start by creating the ServiceCollection and add your services by the concrete types
 ```cpp
-    auto serviceCollection = ServiceCollection();
+    auto serviceCollection = skr::ServiceCollection();
 
     serviceCollection.AddSingleton<Singleton>();
     serviceCollection.AddScoped<Scoped>();
@@ -27,7 +27,7 @@ start by creating the ServiceCollection and add your services by the concrete ty
 
 ## Interface/Contract
 ```cpp
-    auto serviceCollection = ServiceCollection();
+    auto serviceCollection = skr::ServiceCollection();
 
     serviceCollection.AddSingleton<ISingleton, Singleton>();
     serviceCollection.AddScoped<IScoped, Scoped>();
@@ -39,8 +39,29 @@ start by creating the ServiceCollection and add your services by the concrete ty
 ```cpp
 class Scoped {
 public:
-    Scoped(std::shared_ptr<ITransient> transient) : mTransient(transient) {}
+    Scoped(Ref<ITransient> transient) : mTransient(transient) {}
 private:
     ITransient mTransient;
 }
+```
+
+## Logging
+Skirnir uses the [fmt](https://github.com/fmtlib/fmt) to provide global logging capabilities, every service added will also add a `skr::Logger<TService>`. This logger can be injected and produces logging messages with the typename of the template argument:
+
+```cpp
+class Repository : public IRepository
+{
+  public:
+    Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
+    ~Repository() override = default;
+
+    void Add() override { mLogger->LogInformation("Add"); }
+
+  private:
+    Ref<skr::Logger<Repository>> mLogger;
+};
+```
+Calling the `Repository::Add()` method will output:
+```log
+[Information] 2025-03-12 21:55:19.650921540 'Repository': Add
 ```
