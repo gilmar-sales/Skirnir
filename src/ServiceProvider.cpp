@@ -4,10 +4,9 @@
 namespace SKIRNIR_NAMESPACE
 {
 
-    std::shared_ptr<ServiceScope> ServiceProvider::CreateServiceScope()
+    Ref<ServiceScope> ServiceProvider::CreateServiceScope()
     {
-        return std::make_shared<ServiceScope>(
-            mServiceDefinitionMap, mSingletonsCache);
+        return MakeRef<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
     };
 
 } // namespace SKIRNIR_NAMESPACE

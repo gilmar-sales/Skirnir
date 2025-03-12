@@ -17,12 +17,12 @@ namespace SKIRNIR_NAMESPACE
     {
       public:
         ServiceCollection() :
-            mServiceDefinitionMap(std::make_shared<ServiceDefinitionMap>())
+            mServiceDefinitionMap(MakeRef<ServiceDefinitionMap>())
         {
             AddTransient<Logger<ServiceCollection>>();
             AddTransient<Logger<ServiceProvider>>();
-            mLogger = std::make_shared<Logger<ServiceCollection>>(
-                std::make_shared<LoggerOptions>());
+            mLogger =
+                MakeRef<Logger<ServiceCollection>>(MakeRef<LoggerOptions>());
         };
 
         ~ServiceCollection() = default;
@@ -224,7 +224,7 @@ namespace SKIRNIR_NAMESPACE
                 AddSingleton<LoggerOptions>();
             }
 
-            return std::make_shared<ServiceProvider>(mServiceDefinitionMap);
+            return MakeRef<ServiceProvider>(mServiceDefinitionMap);
         }
 
       protected:
@@ -238,9 +238,7 @@ namespace SKIRNIR_NAMESPACE
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
                   { .factory =
-                        [](ServiceProvider&) {
-                            return std::make_shared<TService>();
-                        },
+                        [](ServiceProvider&) { return MakeRef<TService>(); },
                     .lifetime = lifeTime } });
 
             if constexpr (!std::is_base_of_v<ILogger, TContract>)
@@ -322,7 +320,7 @@ namespace SKIRNIR_NAMESPACE
         ServiceFactory CreateServiceFactory(std::tuple<Args...> tuple)
         {
             return ServiceFactory([](ServiceProvider& serviceProvider) {
-                return std::make_shared<TService>(
+                return MakeRef<TService>(
                     serviceProvider.GetService<std::remove_pointer_t<
                         decltype(Args(nullptr).get())>>()...);
             });

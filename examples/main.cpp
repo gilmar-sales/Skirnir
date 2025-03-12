@@ -53,14 +53,21 @@ int main()
 {
     auto services = skr::ServiceCollection();
 
-    services.AddTransient<IRepository, Repository>().AddSingleton<Singleton>();
+    services
+        .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
+            auto options      = skr::MakeRef<skr::LoggerOptions>();
+            options->logLevel = skr::LogLevel::Information;
+            return options;
+        })
+        .AddTransient<IRepository, Repository>()
+        .AddSingleton<Singleton>();
 
     const auto serviceProvider = services.CreateServiceProvider();
 
     const auto scope = serviceProvider->CreateServiceScope();
 
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10'000; ++i)
+    for (int i = 0; i < 100'000; ++i)
     {
         const auto repository =
             scope->GetServiceProvider()->GetService<IRepository>();
@@ -72,7 +79,7 @@ int main()
               << std::endl;
 
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10'000; ++i)
+    for (int i = 0; i < 100'000; ++i)
     {
         const auto repository = serviceProvider->GetService<Singleton>();
     }

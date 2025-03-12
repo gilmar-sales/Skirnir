@@ -91,6 +91,11 @@
     "text_encoding": "cpp",
     "thread": "cpp",
     "typeindex": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "coroutine": "cpp",
+    "unordered_set": "cpp",
+    "future": "cpp",
+    "stdfloat": "cpp",
+    "cinttypes": "cpp"
   }
 }

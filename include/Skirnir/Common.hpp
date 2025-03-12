@@ -17,7 +17,12 @@ using Ref = std::shared_ptr<T>;
 
 namespace SKIRNIR_NAMESPACE
 {
-
+    template <typename T, typename... TArgs>
+        requires(std::is_constructible_v<T, TArgs...>)
+    inline Ref<T> MakeRef(TArgs&&... args)
+    {
+        return std::make_shared<T>(std::forward<TArgs>(args)...);
+    }
     enum class LifeTime
     {
         Transient,

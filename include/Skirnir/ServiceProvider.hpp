@@ -14,12 +14,11 @@ namespace SKIRNIR_NAMESPACE
     {
       public:
         explicit ServiceProvider(
-            const std::shared_ptr<ServiceDefinitionMap>& serviceDefinitionMap,
-            const std::shared_ptr<ServicesCache>&        singletonsCache =
-                std::make_shared<ServicesCache>(),
-            const std::shared_ptr<ServicesCache>& scopedsCache =
-                std::make_shared<ServicesCache>(),
-            const bool isScoped = false) :
+            const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
+            const Ref<ServicesCache>&        singletonsCache =
+                MakeRef<ServicesCache>(),
+            const Ref<ServicesCache>& scopedsCache = MakeRef<ServicesCache>(),
+            const bool                isScoped     = false) :
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
             mSingletonsCache(singletonsCache), mScopeCache(scopedsCache)
         {
@@ -27,7 +26,7 @@ namespace SKIRNIR_NAMESPACE
         };
 
         template <typename TService>
-        std::shared_ptr<TService> GetService()
+        Ref<TService> GetService()
         {
             if constexpr (std::is_same_v<TService, ServiceProvider>)
                 return shared_from_this();
