@@ -14,15 +14,26 @@ class IRepository
 class Repository : public IRepository
 {
   public:
+    Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
     ~Repository() override = default;
 
-    void Add() override { std::cout << "Repository::Add" << std::endl; }
+    void Add() override { mLogger->LogInformation("Add"); }
+
+  private:
+    Ref<skr::Logger<Repository>> mLogger;
 };
 
 class OtherRepository : public IRepository
 {
   public:
-    void Add() override {}
+    OtherRepository(Ref<skr::Logger<OtherRepository>> logger) : mLogger(logger)
+    {
+    }
+
+    void Add() override { mLogger->LogInformation("Add"); }
+
+  private:
+    Ref<skr::Logger<OtherRepository>> mLogger;
 };
 
 class Singleton
@@ -48,16 +59,8 @@ int main()
 
     const auto scope = serviceProvider->CreateServiceScope();
 
-    scope->GetServiceProvider()->GetService<std::vector<int>>();
-
-    for (int i = 0; i < 1'000'000; ++i)
-    {
-        const auto repository =
-            scope->GetServiceProvider()->GetService<IRepository>();
-    }
-
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10'000'000; ++i)
+    for (int i = 0; i < 10'000; ++i)
     {
         const auto repository =
             scope->GetServiceProvider()->GetService<IRepository>();
@@ -69,7 +72,7 @@ int main()
               << std::endl;
 
     begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10'000'000; ++i)
+    for (int i = 0; i < 10'000; ++i)
     {
         const auto repository = serviceProvider->GetService<Singleton>();
     }

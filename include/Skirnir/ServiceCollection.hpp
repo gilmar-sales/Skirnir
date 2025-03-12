@@ -46,6 +46,17 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService> &&
+                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+        ServiceCollection& AddSingleton()
+        {
+            AddServiceWithConstructorArgs<TContract, TService>(
+                LifeTime::Singleton);
+
+            return *this;
+        }
+
         template <typename TService>
             requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
         ServiceCollection& AddSingleton()
@@ -104,10 +115,22 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-            requires(std::is_base_of_v<TContract, TService>)
+            requires(std::is_base_of_v<TContract, TService> &&
+                     std::tuple_size_v<refl::as_tuple<TService>> == 0)
         ServiceCollection& AddTransient()
         {
             AddService<TContract, TService>(LifeTime::Transient);
+
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService> &&
+                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+        ServiceCollection& AddTransient()
+        {
+            AddServiceWithConstructorArgs<TContract, TService>(
+                LifeTime::Transient);
 
             return *this;
         }
@@ -123,6 +146,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
+            requires(std::tuple_size_v<refl::as_tuple<TService>> == 0)
         ServiceCollection& AddTransient()
         {
             AddService<TService, TService>(LifeTime::Transient);
@@ -150,10 +174,22 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-            requires(std::is_base_of_v<TContract, TService>)
+            requires(std::is_base_of_v<TContract, TService> &&
+                     std::tuple_size_v<refl::as_tuple<TService>> == 0)
         ServiceCollection& AddScoped()
         {
             AddService<TContract, TService>(LifeTime::Scoped);
+
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService> &&
+                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+        ServiceCollection& AddScoped()
+        {
+            AddServiceWithConstructorArgs<TContract, TService>(
+                LifeTime::Scoped);
 
             return *this;
         }

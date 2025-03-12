@@ -31,12 +31,19 @@ namespace SKIRNIR_NAMESPACE
     template <typename T>
     constexpr std::string type_name()
     {
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__)
         // __PRETTY_FUNCTION__ on Clang/GCC looks like:
         //   std::string type_name() [with T = MyNamespace::MyType]
         std::string pretty = __PRETTY_FUNCTION__;
         auto        start  = pretty.find("T = ") + 4;
         auto        end    = pretty.rfind(']');
+        return pretty.substr(start, end - start);
+#elif defined(__GNUC__)
+        // __PRETTY_FUNCTION__ on Clang/GCC looks like:
+        //   std::string type_name() [with T = MyNamespace::MyType]
+        std::string pretty = __PRETTY_FUNCTION__;
+        auto        start  = pretty.find("T = ") + 4;
+        auto        end    = std::min(pretty.rfind(']'), pretty.rfind(';'));
         return pretty.substr(start, end - start);
 #elif defined(_MSC_VER)
         // __FUNCSIG__ on MSVC looks like:
