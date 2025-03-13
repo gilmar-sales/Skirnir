@@ -217,7 +217,7 @@ namespace SKIRNIR_NAMESPACE
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
         }
 
-        [[nodiscard]] std::shared_ptr<ServiceProvider> CreateServiceProvider()
+        [[nodiscard]] Ref<skr::ServiceProvider> CreateServiceProvider()
         {
             if (!Contains<LoggerOptions>())
             {

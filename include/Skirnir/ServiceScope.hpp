@@ -11,13 +11,13 @@ namespace SKIRNIR_NAMESPACE
             const std::shared_ptr<ServiceDefinitionMap>& serviceDefinitionMap,
             const std::shared_ptr<ServicesCache>&        singletonsCache);
 
-        std::shared_ptr<ServiceProvider> GetServiceProvider()
+        Ref<skr::ServiceProvider> GetServiceProvider()
         {
             return mServiceProvider;
         };
 
       private:
-        std::shared_ptr<ServiceProvider>      mServiceProvider;
+        Ref<skr::ServiceProvider>             mServiceProvider;
         std::shared_ptr<ServiceDefinitionMap> mServiceDefinitionMap;
         std::shared_ptr<ServicesCache>        mSingletonsCache;
         std::shared_ptr<ServicesCache>        mScopeCache;
