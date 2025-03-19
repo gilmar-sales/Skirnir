@@ -8,7 +8,15 @@ project(Skirnir LANGUAGES CXX VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 23)
 
 if (NOT TARGET skirnir)
-    add_subdirectory(vendor/fmt)
+
+    include(FetchContent)
+
+    FetchContent_Declare(
+    asiocmake
+    GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+    GIT_TAG        "11.1.4"
+    )
+    FetchContent_MakeAvailable(asiocmake)
 
     add_library(skirnir
             src/ServiceScope.cpp

@@ -5,8 +5,8 @@
     #pragma GCC diagnostic ignored "-Wnon-template-friend"
 #endif
 
-//#pragma warning(push)
-//#pragma warning(disable: 4396)
+// #pragma warning(push)
+// #pragma warning(disable: 4396)
 
 #include <tuple>
 #include <utility>
@@ -117,7 +117,7 @@ namespace refl
 } // namespace refl
 
 #ifdef __GNUC__
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif
 
-//#pragma warning(pop)
+// #pragma warning(pop)

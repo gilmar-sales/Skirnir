@@ -19,7 +19,7 @@ class ServiceScopeSpec : public ::testing::Test
   protected:
     void SetUp() override
     {
-        const auto serviceCollection =
+        auto serviceCollection =
             skr::ServiceCollection()
                 .AddSingleton<SingletonService>()
                 .AddScoped<ScopedService>()

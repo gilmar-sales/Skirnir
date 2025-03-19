@@ -20,7 +20,7 @@ class ServiceProviderSpec : public ::testing::Test
   protected:
     void SetUp() override
     {
-        const auto serviceCollection =
+        auto serviceCollection =
             skr::ServiceCollection()
                 .AddSingleton<SingletonService>()
                 .AddScoped<ScopedService>()
@@ -31,7 +31,7 @@ class ServiceProviderSpec : public ::testing::Test
 
     void TearDown() override { mServiceProvider.reset(); }
 
-    std::shared_ptr<skr::ServiceProvider> mServiceProvider;
+    Ref<skr::ServiceProvider> mServiceProvider;
 };
 
 TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSingleton)
@@ -77,6 +77,6 @@ TEST_F(ServiceProviderSpec,
 TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 {
     ASSERT_DEATH(mServiceProvider->GetService<ScopedService>(),
-                 "Unable to get scoped service into Root Service Provider, "
-                 "create an scope first.");
+                 ".*Unable to get 'Scoped' ScopedService service into Root "
+                 "Service Provider. Create an scope first.");
 }
