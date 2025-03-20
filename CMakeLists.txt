@@ -12,11 +12,11 @@ if (NOT TARGET skirnir)
     include(FetchContent)
 
     FetchContent_Declare(
-    asiocmake
+    fmt
     GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
     GIT_TAG        "11.1.4"
     )
-    FetchContent_MakeAvailable(asiocmake)
+    FetchContent_MakeAvailable(fmt)
 
     add_library(skirnir
             src/ServiceScope.cpp
