@@ -13,8 +13,6 @@ FetchContent_MakeAvailable(gtest)
 
 enable_testing()
 
-find_package(GTest REQUIRED)
-
 file(GLOB_RECURSE TESTS_SRC
         "src/*.cpp"
 )
