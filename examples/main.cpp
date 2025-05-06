@@ -39,21 +39,66 @@ class OtherRepository : public IRepository
 class Singleton
 {
   public:
-    explicit Singleton(const std::shared_ptr<IRepository>& repository)
-    {
-        repository->Add();
-    }
+    explicit Singleton() {}
 
     ~Singleton() = default;
 
     void Add() {}
 };
 
+class ExampleApp : public skr::Application
+{
+  public:
+    ExampleApp(Ref<skr::ServiceProvider> rootServiceProvider) :
+        skr::Application(rootServiceProvider)
+    {
+        mLogger = rootServiceProvider->GetService<skr::Logger<ExampleApp>>();
+    }
+
+    ~ExampleApp() override = default;
+
+    void Run() override
+    {
+        const auto iterationCount = 100'000;
+
+        const auto scope = mRootServiceProvider->CreateServiceScope();
+
+        auto begin = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < iterationCount; ++i)
+        {
+            const auto repository =
+                scope->GetServiceProvider()->GetService<IRepository>();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+
+        mLogger->LogInformation(
+            "Time to create {} repositories in scope: {}",
+            iterationCount,
+            std::chrono::duration_cast<std::chrono::milliseconds>(end - begin));
+
+        begin = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < iterationCount; ++i)
+        {
+            const auto repository =
+                mRootServiceProvider->GetService<Singleton>();
+        }
+        end = std::chrono::high_resolution_clock::now();
+
+        mLogger->LogInformation(
+            "Time to create {} singletons in root: {}",
+            iterationCount,
+            std::chrono::duration_cast<std::chrono::milliseconds>(end - begin));
+    }
+
+  private:
+    Ref<skr::Logger<ExampleApp>> mLogger;
+};
+
 int main()
 {
-    auto services = skr::ServiceCollection();
+    auto appBuilder = skr::ApplicationBuilder();
 
-    services
+    appBuilder.GetServiceCollection()
         .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
             auto options      = skr::MakeRef<skr::LoggerOptions>();
             options->logLevel = skr::LogLevel::Information;
@@ -62,37 +107,7 @@ int main()
         .AddTransient<IRepository, Repository>()
         .AddSingleton<Singleton>();
 
-    const auto serviceProvider = services.CreateServiceProvider();
-
-    const auto scope = serviceProvider->CreateServiceScope();
-
-    auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 100'000; ++i)
-    {
-        const auto repository =
-            scope->GetServiceProvider()->GetService<IRepository>();
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     end - begin)
-              << std::endl;
-
-    begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 100'000; ++i)
-    {
-        const auto repository = serviceProvider->GetService<Singleton>();
-    }
-    end = std::chrono::high_resolution_clock::now();
-
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     end - begin)
-              << std::endl;
+    appBuilder.Build<ExampleApp>()->Run();
 
     return 0;
 }
-
-// TIP See CLion help at <a
-// href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>.
-//  Also, you can try interactive lessons for CLion by selecting
-//  'Help | Learn IDE Features' from the main menu.
