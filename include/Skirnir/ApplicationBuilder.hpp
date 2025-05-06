@@ -27,7 +27,7 @@ namespace SKIRNIR_NAMESPACE
       public:
         virtual ~IExtension() = default;
 
-        virtual void Configure(ServiceCollection& services) = 0;
+        virtual void Configure(ServiceCollection& services) const = 0;
     };
 
     class ApplicationBuilder
@@ -39,11 +39,9 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename T>
             requires(std::is_base_of_v<IExtension, T>)
-        ApplicationBuilder& AddExtension()
+        ApplicationBuilder& AddExtension(const T& extension)
         {
-            auto extension = MakeRef<T>();
-
-            extension->Configure(*mServiceCollection);
+            extension.Configure(*mServiceCollection);
 
             return *this;
         }

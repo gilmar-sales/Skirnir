@@ -97,7 +97,7 @@ class ExampleApp : public skr::IApplication
 class ExampleExtension : public skr::IExtension
 {
   public:
-    void Configure(skr::ServiceCollection& services) override
+    void Configure(skr::ServiceCollection& services) const override
     {
         services
             .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
@@ -113,7 +113,7 @@ class ExampleExtension : public skr::IExtension
 int main()
 {
     auto appBuilder =
-        skr::ApplicationBuilder().AddExtension<ExampleExtension>();
+        skr::ApplicationBuilder().AddExtension(ExampleExtension());
 
     appBuilder.Build<ExampleApp>()->Run();
 
