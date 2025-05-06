@@ -46,11 +46,11 @@ class Singleton
     void Add() {}
 };
 
-class ExampleApp : public skr::Application
+class ExampleApp : public skr::IApplication
 {
   public:
     ExampleApp(Ref<skr::ServiceProvider> rootServiceProvider) :
-        skr::Application(rootServiceProvider)
+        skr::IApplication(rootServiceProvider)
     {
         mLogger = rootServiceProvider->GetService<skr::Logger<ExampleApp>>();
     }
@@ -94,18 +94,26 @@ class ExampleApp : public skr::Application
     Ref<skr::Logger<ExampleApp>> mLogger;
 };
 
+class ExampleExtension : public skr::IExtension
+{
+  public:
+    void Configure(skr::ServiceCollection& services) override
+    {
+        services
+            .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
+                auto options      = skr::MakeRef<skr::LoggerOptions>();
+                options->logLevel = skr::LogLevel::Information;
+                return options;
+            })
+            .AddTransient<IRepository, Repository>()
+            .AddSingleton<Singleton>();
+    }
+};
+
 int main()
 {
-    auto appBuilder = skr::ApplicationBuilder();
-
-    appBuilder.GetServiceCollection()
-        .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
-            auto options      = skr::MakeRef<skr::LoggerOptions>();
-            options->logLevel = skr::LogLevel::Information;
-            return options;
-        })
-        .AddTransient<IRepository, Repository>()
-        .AddSingleton<Singleton>();
+    auto appBuilder =
+        skr::ApplicationBuilder().AddExtension<ExampleExtension>();
 
     appBuilder.Build<ExampleApp>()->Run();
 

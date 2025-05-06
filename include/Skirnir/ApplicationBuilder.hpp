@@ -6,20 +6,28 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-    class Application
+    class IApplication
     {
       public:
-        Application(const Ref<ServiceProvider>& rootServiceProvider) :
+        IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
             mRootServiceProvider(rootServiceProvider)
         {
         }
 
-        virtual ~Application() = default;
+        virtual ~IApplication() = default;
 
         virtual void Run() = 0;
 
       protected:
         Ref<ServiceProvider> mRootServiceProvider;
+    };
+
+    class IExtension
+    {
+      public:
+        virtual ~IExtension() = default;
+
+        virtual void Configure(ServiceCollection& services) = 0;
     };
 
     class ApplicationBuilder
@@ -29,13 +37,19 @@ namespace SKIRNIR_NAMESPACE
         {
         }
 
-        ServiceCollection& GetServiceCollection()
+        template <typename T>
+            requires(std::is_base_of_v<IExtension, T>)
+        ApplicationBuilder& AddExtension()
         {
-            return *mServiceCollection;
+            auto extension = MakeRef<T>();
+
+            extension->Configure(*mServiceCollection);
+
+            return *this;
         }
 
         template <typename T>
-            requires(std::is_base_of_v<Application, T>)
+            requires(std::is_base_of_v<IApplication, T>)
         Ref<T> Build()
         {
             mServiceCollection->AddSingleton<T>();
