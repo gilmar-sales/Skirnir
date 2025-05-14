@@ -3,6 +3,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <set>
 
 #define SKIRNIR_NAMESPACE skr
 
@@ -36,10 +37,36 @@ namespace SKIRNIR_NAMESPACE
 
     using ServiceFactory = std::function<Ref<void>(ServiceProvider&)>;
 
+    struct ServiceDescription
+    {
+        ServiceId id;
+        char*     name;
+
+        bool operator<(const ServiceDescription& other) const
+        {
+            return id < other.id;
+        }
+
+        bool operator==(const ServiceDescription& other) const
+        {
+            return id == other.id;
+        }
+
+        bool operator!=(const ServiceDescription& other) const
+        {
+            return id != other.id;
+        }
+    };
+
+    using InternalServiceFactory = std::function<Ref<void>(
+        ServiceProvider&, std::set<ServiceDescription>&)>;
+
     struct ServiceDefinition
     {
-        ServiceFactory factory  = nullptr;
-        LifeTime       lifetime = LifeTime::Transient;
+        std::function<Ref<void>(
+            ServiceProvider&, std::set<ServiceDescription>&)>
+                 factory  = nullptr;
+        LifeTime lifetime = LifeTime::Transient;
     };
 
     using ServiceDefinitionMap = std::map<ServiceId, ServiceDefinition>;

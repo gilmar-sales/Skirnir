@@ -15,6 +15,7 @@ namespace SKIRNIR_NAMESPACE
         Information,
         Warning,
         Error,
+        Fatal,
         None
     };
 
@@ -29,7 +30,7 @@ namespace SKIRNIR_NAMESPACE
     };
 
     template <typename T>
-    constexpr std::string type_name()
+    static constexpr char* type_name()
     {
 #if defined(__clang__)
         // __PRETTY_FUNCTION__ on Clang/GCC looks like:
@@ -41,10 +42,11 @@ namespace SKIRNIR_NAMESPACE
 #elif defined(__GNUC__)
         // __PRETTY_FUNCTION__ on Clang/GCC looks like:
         //   std::string type_name() [with T = MyNamespace::MyType]
-        std::string pretty = __PRETTY_FUNCTION__;
-        auto        start  = pretty.find("T = ") + 4;
-        auto        end    = std::min(pretty.rfind(']'), pretty.rfind(';'));
-        return pretty.substr(start, end - start);
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end = std::min(pretty.rfind(']'), pretty.rfind(';'));
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
 #elif defined(_MSC_VER)
         // __FUNCSIG__ on MSVC looks like:
         //   std::string __cdecl type_name<TYPE>(void)
@@ -76,8 +78,7 @@ namespace SKIRNIR_NAMESPACE
 #ifndef NDEBUG
             if (!assertion)
             {
-                LogError(fmt, std::forward<TArgs>(args)...);
-                abort();
+                LogFatal(fmt, std::forward<TArgs>(args)...);
             }
 #endif
         }
@@ -156,6 +157,22 @@ namespace SKIRNIR_NAMESPACE
                        std::forward<TArgs>(args)...);
 
             fmt::print("\n");
+        }
+
+        template <typename... TArgs>
+        inline void LogFatal(fmt::format_string<TArgs...> fmt, TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Error)
+                return;
+
+            fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': ",
+                       std::chrono::system_clock::now(), typeName);
+
+            fmt::print(fg(fmt::color::crimson), fmt,
+                       std::forward<TArgs>(args)...);
+
+            fmt::print("\n");
+            abort();
         }
 
         static inline auto typeName = type_name<T>();

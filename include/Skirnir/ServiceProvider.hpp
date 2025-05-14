@@ -28,8 +28,37 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         Ref<TService> GetService()
         {
+            auto serviceIds = std::set<ServiceDescription>();
+            return GetServiceImpl<TService>(serviceIds);
+        }
+
+        template <typename TService>
+        [[nodiscard]] bool Contains() const
+        {
+            return mServiceDefinitionMap->contains(GetServiceId<TService>());
+        }
+
+        Ref<ServiceScope> CreateServiceScope();
+
+      private:
+        template <typename TService>
+        Ref<TService> GetServiceImpl(std::set<ServiceDescription>& serviceIds)
+        {
             if constexpr (std::is_same_v<TService, ServiceProvider>)
                 return shared_from_this();
+
+            if (serviceIds.contains(
+                    ServiceDescription { .id = GetServiceId<TService>() }))
+            {
+                mLogger->LogFatal(
+                    "Circular dependency detected for services: '{}' and '{}'",
+                    type_name<TService>(),
+                    serviceIds.rbegin()->name);
+            }
+
+            serviceIds.insert(ServiceDescription {
+                .id   = GetServiceId<TService>(),
+                .name = type_name<TService>() });
 
             mLogger->Assert(Contains<TService>(),
                             "Unable get unregistered service: '{}'",
@@ -42,7 +71,7 @@ namespace SKIRNIR_NAMESPACE
                 case LifeTime::Transient: {
                     return std::static_pointer_cast<TService>(
                         mServiceDefinitionMap->at(GetServiceId<TService>())
-                            .factory(*this));
+                            .factory(*this, serviceIds));
                 }
                 case LifeTime::Singleton: {
                     const auto it =
@@ -50,7 +79,8 @@ namespace SKIRNIR_NAMESPACE
 
                     if (it == mSingletonsCache->end())
                     {
-                        auto service = serviceDefinition.factory(*this);
+                        auto service =
+                            serviceDefinition.factory(*this, serviceIds);
                         mSingletonsCache->emplace(GetServiceId<TService>(),
                                                   service);
 
@@ -72,7 +102,8 @@ namespace SKIRNIR_NAMESPACE
 
                     if (it == mScopeCache->end())
                     {
-                        auto service = serviceDefinition.factory(*this);
+                        auto service =
+                            serviceDefinition.factory(*this, serviceIds);
                         mScopeCache->emplace(GetServiceId<TService>(), service);
 
                         return std::static_pointer_cast<TService>(service);
@@ -87,15 +118,8 @@ namespace SKIRNIR_NAMESPACE
             }
         }
 
-        template <typename TService>
-        [[nodiscard]] bool Contains() const
-        {
-            return mServiceDefinitionMap->contains(GetServiceId<TService>());
-        }
+        friend class ServiceCollection;
 
-        Ref<ServiceScope> CreateServiceScope();
-
-      private:
         bool mIsScoped;
 
         Ref<Logger<ServiceProvider>> mLogger;

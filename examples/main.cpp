@@ -11,6 +11,8 @@ class IRepository
     virtual void Add() = 0;
 };
 
+class Singleton;
+
 class Repository : public IRepository
 {
   public:

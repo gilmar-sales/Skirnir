@@ -238,7 +238,9 @@ namespace SKIRNIR_NAMESPACE
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
                   { .factory =
-                        [](ServiceProvider&) { return MakeRef<TService>(); },
+                        [](ServiceProvider&, std::set<ServiceDescription>&) {
+                            return MakeRef<TService>();
+                        },
                     .lifetime = lifeTime } });
 
             if constexpr (!std::is_base_of_v<ILogger, TContract>)
@@ -283,7 +285,16 @@ namespace SKIRNIR_NAMESPACE
 
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
-                  { .factory = factory, .lifetime = lifeTime } });
+                  { .factory =
+                        [newFactory = std::move(factory)](
+                            ServiceProvider&              serviceProvider,
+                            std::set<ServiceDescription>& serviceIds) {
+                            serviceIds.emplace(GetServiceId<TContract>(),
+                                               type_name<TContract>());
+
+                            return newFactory(serviceProvider);
+                        },
+                    .lifetime = lifeTime } });
 
             if constexpr (!std::is_base_of_v<ILogger, TContract>)
                 AddTransient<Logger<TContract>>();
@@ -317,13 +328,16 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TService, typename... Args>
             requires(std::is_constructible_v<TService, Args...>)
-        ServiceFactory CreateServiceFactory(std::tuple<Args...> tuple)
+        InternalServiceFactory CreateServiceFactory(std::tuple<Args...> tuple)
         {
-            return ServiceFactory([](ServiceProvider& serviceProvider) {
-                return MakeRef<TService>(
-                    serviceProvider.GetService<std::remove_pointer_t<
-                        decltype(Args(nullptr).get())>>()...);
-            });
+            return InternalServiceFactory(
+                [](ServiceProvider&              serviceProvider,
+                   std::set<ServiceDescription>& servicesDescriptions) {
+                    return MakeRef<TService>(
+                        serviceProvider.GetServiceImpl<std::remove_pointer_t<
+                            decltype(Args(nullptr).get())>>(
+                            servicesDescriptions)...);
+                });
         }
 
       private:
