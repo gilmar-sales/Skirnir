@@ -50,10 +50,10 @@ namespace SKIRNIR_NAMESPACE
             if (serviceIds.contains(
                     ServiceDescription { .id = GetServiceId<TService>() }))
             {
-                mLogger->LogFatal(
-                    "Circular dependency detected for services: '{}' and '{}'",
-                    type_name<TService>(),
-                    serviceIds.rbegin()->name);
+                mLogger->LogFatal("Circular dependency detected between "
+                                  "services: '{}' and '{}'",
+                                  type_name<TService>(),
+                                  serviceIds.rbegin()->name);
             }
 
             serviceIds.insert(ServiceDescription {
