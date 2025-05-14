@@ -30,15 +30,16 @@ namespace SKIRNIR_NAMESPACE
     };
 
     template <typename T>
-    static constexpr char* type_name()
+    constexpr char* type_name()
     {
 #if defined(__clang__)
         // __PRETTY_FUNCTION__ on Clang/GCC looks like:
         //   std::string type_name() [with T = MyNamespace::MyType]
-        std::string pretty = __PRETTY_FUNCTION__;
-        auto        start  = pretty.find("T = ") + 4;
-        auto        end    = pretty.rfind(']');
-        return pretty.substr(start, end - start);
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end    = pretty.rfind(']');
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
 #elif defined(__GNUC__)
         // __PRETTY_FUNCTION__ on Clang/GCC looks like:
         //   std::string type_name() [with T = MyNamespace::MyType]
@@ -50,10 +51,11 @@ namespace SKIRNIR_NAMESPACE
 #elif defined(_MSC_VER)
         // __FUNCSIG__ on MSVC looks like:
         //   std::string __cdecl type_name<TYPE>(void)
-        std::string pretty = __FUNCSIG__;
-        auto        start  = pretty.find("type_name<") + 16;
-        auto        end    = pretty.rfind(">(void)");
-        return pretty.substr(start, end - start);
+        static std::string pretty = __FUNCSIG__;
+        static auto        start  = pretty.find("type_name<") + 16;
+        static auto        end    = pretty.rfind(">(void)");
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
 #else
         return "Unknown Compiler";
 #endif
