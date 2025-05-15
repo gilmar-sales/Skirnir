@@ -42,23 +42,25 @@ namespace SKIRNIR_NAMESPACE
 
       private:
         template <typename TService>
-        Ref<TService> GetServiceImpl(std::set<ServiceDescription>& serviceIds)
+        Ref<TService> GetServiceImpl(
+            std::set<ServiceDescription>& servicesDescriptions)
         {
             if constexpr (std::is_same_v<TService, ServiceProvider>)
                 return shared_from_this();
 
-            if (serviceIds.contains(
-                    ServiceDescription { .id = GetServiceId<TService>() }))
+            auto serviceDescription =
+                ServiceDescription { .id   = GetServiceId<TService>(),
+                                     .name = type_name<TService>() };
+
+            if (servicesDescriptions.contains(serviceDescription))
             {
                 mLogger->LogFatal("Circular dependency detected between "
                                   "services: '{}' and '{}'",
                                   type_name<TService>(),
-                                  serviceIds.rbegin()->name);
+                                  servicesDescriptions.rbegin()->name);
             }
 
-            serviceIds.insert(ServiceDescription {
-                .id   = GetServiceId<TService>(),
-                .name = type_name<TService>() });
+            servicesDescriptions.insert(serviceDescription);
 
             mLogger->Assert(Contains<TService>(),
                             "Unable get unregistered service: '{}'",
@@ -71,7 +73,7 @@ namespace SKIRNIR_NAMESPACE
                 case LifeTime::Transient: {
                     return std::static_pointer_cast<TService>(
                         mServiceDefinitionMap->at(GetServiceId<TService>())
-                            .factory(*this, serviceIds));
+                            .factory(*this, servicesDescriptions));
                 }
                 case LifeTime::Singleton: {
                     const auto it =
@@ -80,12 +82,15 @@ namespace SKIRNIR_NAMESPACE
                     if (it == mSingletonsCache->end())
                     {
                         auto service =
-                            serviceDefinition.factory(*this, serviceIds);
+                            serviceDefinition.factory(*this,
+                                                      servicesDescriptions);
                         mSingletonsCache->emplace(GetServiceId<TService>(),
                                                   service);
 
                         return std::static_pointer_cast<TService>(service);
                     }
+
+                    servicesDescriptions.erase(serviceDescription);
 
                     return std::static_pointer_cast<TService>(
                         mSingletonsCache->at(GetServiceId<TService>()));
@@ -103,11 +108,14 @@ namespace SKIRNIR_NAMESPACE
                     if (it == mScopeCache->end())
                     {
                         auto service =
-                            serviceDefinition.factory(*this, serviceIds);
+                            serviceDefinition.factory(*this,
+                                                      servicesDescriptions);
                         mScopeCache->emplace(GetServiceId<TService>(), service);
 
                         return std::static_pointer_cast<TService>(service);
                     }
+
+                    servicesDescriptions.erase(serviceDescription);
 
                     return std::static_pointer_cast<TService>(
                         mScopeCache->at(GetServiceId<TService>()));

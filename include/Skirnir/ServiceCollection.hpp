@@ -287,10 +287,12 @@ namespace SKIRNIR_NAMESPACE
                 { GetServiceId<TContract>(),
                   { .factory =
                         [newFactory = std::move(factory)](
-                            ServiceProvider&              serviceProvider,
-                            std::set<ServiceDescription>& serviceIds) {
-                            serviceIds.emplace(GetServiceId<TContract>(),
-                                               type_name<TContract>());
+                            ServiceProvider& serviceProvider,
+                            std::set<ServiceDescription>&
+                                servicesDescriptions) {
+                            servicesDescriptions.erase(ServiceDescription {
+                                .id   = GetServiceId<TContract>(),
+                                .name = type_name<TContract>() });
 
                             return newFactory(serviceProvider);
                         },
@@ -314,8 +316,16 @@ namespace SKIRNIR_NAMESPACE
 
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
-                  { .factory = [instance = instance](
-                                   ServiceProvider&) { return instance; },
+                  { .factory =
+                        [instance = instance](ServiceProvider&,
+                                              std::set<ServiceDescription>&
+                                                  servicesDescriptions) {
+                            servicesDescriptions.erase(ServiceDescription {
+                                .id   = GetServiceId<TContract>(),
+                                .name = type_name<TContract>() });
+
+                            return instance;
+                        },
                     .lifetime = lifeTime } });
 
             if constexpr (!std::is_base_of_v<ILogger, TContract>)
@@ -333,6 +343,10 @@ namespace SKIRNIR_NAMESPACE
             return InternalServiceFactory(
                 [](ServiceProvider&              serviceProvider,
                    std::set<ServiceDescription>& servicesDescriptions) {
+                    servicesDescriptions.erase(ServiceDescription {
+                        .id   = GetServiceId<TService>(),
+                        .name = type_name<TService>() });
+
                     return MakeRef<TService>(
                         serviceProvider.GetServiceImpl<std::remove_pointer_t<
                             decltype(Args(nullptr).get())>>(
