@@ -27,7 +27,8 @@ namespace SKIRNIR_NAMESPACE
       public:
         virtual ~IExtension() = default;
 
-        virtual void ConfigureServices(ServiceCollection& services) const = 0;
+        virtual void ConfigureServices(ServiceCollection& services) {};
+        virtual void UseServices(ServiceProvider& serviceProvider) {};
     };
 
     class ApplicationBuilder
@@ -39,9 +40,11 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename T>
             requires(std::is_base_of_v<IExtension, T>)
-        ApplicationBuilder& AddExtension(const T& extension)
+        ApplicationBuilder& AddExtension(T extension)
         {
             extension.ConfigureServices(*mServiceCollection);
+
+            mExtensions.push_back(MakeRef<T>(std::move(extension)));
 
             return *this;
         }
@@ -54,13 +57,19 @@ namespace SKIRNIR_NAMESPACE
 
             auto serviceProvider = mServiceCollection->CreateServiceProvider();
 
+            for (const auto& extension : mExtensions)
+            {
+                extension->UseServices(*serviceProvider);
+            }
+
             auto app = serviceProvider->GetService<T>();
 
             return app;
         }
 
       private:
-        Ref<ServiceCollection> mServiceCollection;
+        Ref<ServiceCollection>       mServiceCollection;
+        std::vector<Ref<IExtension>> mExtensions;
     };
 
 } // namespace SKIRNIR_NAMESPACE
