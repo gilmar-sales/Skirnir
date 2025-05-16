@@ -16,6 +16,11 @@ namespace SKIRNIR_NAMESPACE
 
         virtual ~IApplication() = default;
 
+        ServiceProvider& GetRootServiceProvider()
+        {
+            return *mRootServiceProvider;
+        }
+
         virtual void Run() = 0;
 
       protected:
@@ -36,6 +41,11 @@ namespace SKIRNIR_NAMESPACE
       public:
         ApplicationBuilder() : mServiceCollection(MakeRef<ServiceCollection>())
         {
+        }
+
+        ServiceCollection& GetServiceCollection()
+        {
+            return *mServiceCollection;
         }
 
         template <typename T>
