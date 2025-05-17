@@ -9,7 +9,7 @@ namespace SKIRNIR_NAMESPACE
     template <typename T>
     constexpr auto GetServiceId() -> ServiceId
     {
-        const static auto id = DependencyCount++;
+        static auto id = DependencyCount++;
 
         return id;
     }
