@@ -76,7 +76,5 @@ TEST_F(ServiceProviderSpec,
 
 TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 {
-    ASSERT_DEATH(mServiceProvider->GetService<ScopedService>(),
-                 ".*Unable to get 'Scoped' ScopedService service into Root "
-                 "Service Provider. Create an scope first.");
+    ASSERT_ANY_THROW(mServiceProvider->GetService<ScopedService>());
 }

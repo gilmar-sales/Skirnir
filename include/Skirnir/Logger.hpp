@@ -167,14 +167,12 @@ namespace SKIRNIR_NAMESPACE
             if (mLoggerOptions->logLevel > LogLevel::Error)
                 return;
 
-            fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+            const auto line = fmt::format(fmt, std::forward<TArgs>(args)...);
 
-            fmt::print(fg(fmt::color::crimson), fmt,
-                       std::forward<TArgs>(args)...);
+            fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': {}\n",
+                       std::chrono::system_clock::now(), typeName, line);
 
-            fmt::print("\n");
-            abort();
+            throw std::runtime_error(line);
         }
 
         static inline auto typeName = type_name<T>();

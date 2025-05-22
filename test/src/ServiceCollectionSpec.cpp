@@ -30,9 +30,8 @@ TEST_F(ServiceCollectionSpec, ServiceCollectionShouldBreakWhenAddSingletonTwice)
 {
     mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>());
 
-    ASSERT_DEATH(
-        mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>()),
-        "Can't register twice");
+    ASSERT_ANY_THROW(
+        mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>()));
 }
 
 TEST_F(ServiceCollectionSpec, ServiceCollectionCreateServiceProvider)
