@@ -2,39 +2,11 @@
 
 #include <type_traits>
 
-#include "ServiceCollection.hpp"
+#include "Application.hpp"
+#include "Extension.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
-    class IApplication
-    {
-      public:
-        IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
-            mRootServiceProvider(rootServiceProvider)
-        {
-        }
-
-        virtual ~IApplication() = default;
-
-        ServiceProvider& GetRootServiceProvider()
-        {
-            return *mRootServiceProvider;
-        }
-
-        virtual void Run() = 0;
-
-      protected:
-        Ref<ServiceProvider> mRootServiceProvider;
-    };
-
-    class IExtension
-    {
-      public:
-        virtual ~IExtension() = default;
-
-        virtual void ConfigureServices(ServiceCollection& services) {};
-        virtual void UseServices(ServiceProvider& serviceProvider) {};
-    };
 
     class ApplicationBuilder
     {

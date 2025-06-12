@@ -17,8 +17,6 @@ file(GLOB_RECURSE TESTS_SRC
         "src/*.cpp"
 )
 
-add_executable(SkirnirTest_run ${TESTS_SRC}
-        src/ServiceProviderSpec.cpp
-        src/ServiceScopeSpec.cpp)
+add_executable(SkirnirTest_run ${TESTS_SRC})
 
 target_link_libraries(SkirnirTest_run skirnir::skirnir gtest gtest_main)
