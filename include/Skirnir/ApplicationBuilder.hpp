@@ -20,13 +20,18 @@ namespace SKIRNIR_NAMESPACE
             return *mServiceCollection;
         }
 
-        template <typename T>
-            requires(std::is_base_of_v<IExtension, T>)
-        ApplicationBuilder& AddExtension(T extension)
+        template <typename TExtension>
+            requires(std::is_base_of_v<IExtension, TExtension>)
+        ApplicationBuilder& AddExtension(
+            std::function<void(TExtension&)> configureExtensionFunc)
         {
-            extension.ConfigureServices(*mServiceCollection);
+            auto extension = GetOrCreateExtension<TExtension>();
 
-            mExtensions.push_back(MakeRef<T>(std::move(extension)));
+            configureExtensionFunc(*extension);
+
+            extension->Attach(*this);
+
+            extension.ConfigureServices(*mServiceCollection);
 
             return *this;
         }
@@ -50,8 +55,23 @@ namespace SKIRNIR_NAMESPACE
         }
 
       private:
-        Ref<ServiceCollection>       mServiceCollection;
-        std::vector<Ref<IExtension>> mExtensions;
+        template <typename TExtension>
+            requires(std::is_base_of_v<IExtension, TExtension>)
+        Ref<TExtension> GetOrCreateExtension()
+        {
+            if (auto it = mExtensions.find(GetExtensionId<TExtension>());
+                it == mExtensions.end())
+            {
+                auto extension = MakeRef<TExtension>();
+                mExtensions[GetExtensionId<TExtension>()] = extension;
+                return extension;
+            }
+
+            return *it;
+        }
+
+        Ref<ServiceCollection>                 mServiceCollection;
+        std::map<ExtensionId, Ref<IExtension>> mExtensions;
     };
 
 } // namespace SKIRNIR_NAMESPACE
