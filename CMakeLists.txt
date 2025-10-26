@@ -12,9 +12,9 @@ if (NOT TARGET skirnir)
     include(FetchContent)
 
     FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-    GIT_TAG        "11.1.4"
+            fmt
+            GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+            GIT_TAG "11.1.4"
     )
     FetchContent_MakeAvailable(fmt)
 
@@ -36,12 +36,16 @@ install(DIRECTORY include/
 )
 
 option(BUILD_SKIRNIR_EXAMPLES OFF CACHE)
+option(BUILD_SKIRNIR_TESTS OFF CACHE)
+
+if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+    set(BUILD_SKIRNIR_EXAMPLES ON)
+    set(BUILD_SKIRNIR_TESTS ON)
+endif ()
 
 if (${BUILD_SKIRNIR_EXAMPLES})
     add_subdirectory(examples)
 endif ()
-
-option(BUILD_SKIRNIR_TESTS OFF CACHE)
 
 if (${BUILD_SKIRNIR_TESTS})
     add_subdirectory(test)

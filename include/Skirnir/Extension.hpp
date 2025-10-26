@@ -4,8 +4,6 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-    class ApplicationBuilder;
-
     using ExtensionId = unsigned long;
 
     inline ExtensionId ExtensionCount = 0;
@@ -22,6 +20,9 @@ namespace SKIRNIR_NAMESPACE
     {
       public:
         virtual ~IExtension() = default;
+
+      private:
+        friend class ApplicationBuilder;
 
         virtual void Attach(ApplicationBuilder& applicationBuilder) {};
         virtual void ConfigureServices(ServiceCollection& services) {};

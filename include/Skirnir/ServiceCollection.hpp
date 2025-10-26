@@ -231,10 +231,6 @@ namespace SKIRNIR_NAMESPACE
         template <typename TContract, typename TService>
         void AddService(const LifeTime lifeTime)
         {
-            mLogger->Assert(!Contains<TContract>(),
-                            "{}: Can't register twice",
-                            __PRETTY_FUNCTION__);
-
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
                   { .factory =
@@ -255,9 +251,6 @@ namespace SKIRNIR_NAMESPACE
             requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
         void AddServiceWithConstructorArgs(const LifeTime lifeTime)
         {
-            mLogger->Assert(!Contains<TContract>(),
-                            "{}: Can't register twice",
-                            __PRETTY_FUNCTION__);
 
             using ConstructorArgs = refl::as_tuple<TService>;
 
@@ -279,9 +272,6 @@ namespace SKIRNIR_NAMESPACE
         void AddServiceWithFactory(const LifeTime        lifeTime,
                                    const ServiceFactory& factory)
         {
-            mLogger->Assert(!Contains<TContract>(),
-                            "{}: Can't register twice",
-                            __PRETTY_FUNCTION__);
 
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
@@ -310,9 +300,6 @@ namespace SKIRNIR_NAMESPACE
         void AddServiceWithInstance(std::shared_ptr<TService> instance,
                                     const LifeTime            lifeTime)
         {
-            mLogger->Assert(!Contains<TContract>(),
-                            "{}: Can't register twice",
-                            __PRETTY_FUNCTION__);
 
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),

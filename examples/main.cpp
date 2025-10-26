@@ -96,9 +96,8 @@ class ExampleApp : public skr::IApplication
     Ref<skr::Logger<ExampleApp>> mLogger;
 };
 
-class ExampleExtension : public skr::IExtension
+class ExampleExtension final : public skr::IExtension
 {
-  public:
     void ConfigureServices(skr::ServiceCollection& services) override
     {
         services
@@ -115,7 +114,12 @@ class ExampleExtension : public skr::IExtension
 int main()
 {
     auto appBuilder =
-        skr::ApplicationBuilder().AddExtension(ExampleExtension());
+        skr::ApplicationBuilder()
+            .AddExtension<ExampleExtension>(
+                [](ExampleExtension& exampleExtension) {
+
+                })
+            .AddExtension<ExampleExtension>();
 
     appBuilder.Build<ExampleApp>()->Run();
 

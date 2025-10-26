@@ -19,6 +19,12 @@ namespace SKIRNIR_NAMESPACE
         {
             return *mServiceCollection;
         }
+        template <typename TExtension>
+            requires(std::is_base_of_v<IExtension, TExtension>)
+        ApplicationBuilder& AddExtension()
+        {
+            return AddExtension<TExtension>([](auto&) {});
+        }
 
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
@@ -27,11 +33,11 @@ namespace SKIRNIR_NAMESPACE
         {
             auto extension = GetOrCreateExtension<TExtension>();
 
-            configureExtensionFunc(*extension);
+            configureExtensionFunc(*std::static_pointer_cast<TExtension>(extension));
 
             extension->Attach(*this);
 
-            extension.ConfigureServices(*mServiceCollection);
+            extension->ConfigureServices(*mServiceCollection);
 
             return *this;
         }
@@ -44,7 +50,7 @@ namespace SKIRNIR_NAMESPACE
 
             auto serviceProvider = mServiceCollection->CreateServiceProvider();
 
-            for (const auto& extension : mExtensions)
+            for (const auto& [_, extension] : mExtensions)
             {
                 extension->UseServices(*serviceProvider);
             }
@@ -57,17 +63,18 @@ namespace SKIRNIR_NAMESPACE
       private:
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        Ref<TExtension> GetOrCreateExtension()
+        Ref<IExtension> GetOrCreateExtension()
         {
             if (auto it = mExtensions.find(GetExtensionId<TExtension>());
-                it == mExtensions.end())
+                it != mExtensions.end())
             {
-                auto extension = MakeRef<TExtension>();
-                mExtensions[GetExtensionId<TExtension>()] = extension;
-                return extension;
+                return it->second;
             }
 
-            return *it;
+            auto extension                            = MakeRef<TExtension>();
+            mExtensions[GetExtensionId<TExtension>()] = extension;
+
+            return extension;
         }
 
         Ref<ServiceCollection>                 mServiceCollection;

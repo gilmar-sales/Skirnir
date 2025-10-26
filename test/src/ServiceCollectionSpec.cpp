@@ -26,14 +26,6 @@ TEST_F(ServiceCollectionSpec, ServiceCollectionShouldAddSingletonByInstance)
     ASSERT_TRUE(mServiceCollection->Contains<SingletonService>());
 }
 
-TEST_F(ServiceCollectionSpec, ServiceCollectionShouldBreakWhenAddSingletonTwice)
-{
-    mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>());
-
-    ASSERT_ANY_THROW(
-        mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>()));
-}
-
 TEST_F(ServiceCollectionSpec, ServiceCollectionCreateServiceProvider)
 {
     mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>());
