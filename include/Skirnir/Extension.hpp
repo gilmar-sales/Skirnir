@@ -8,12 +8,12 @@ namespace SKIRNIR_NAMESPACE
 
     using ExtensionId = unsigned long;
 
-    inline ExtensionId DependencyCount = 0;
+    inline ExtensionId ExtensionCount = 0;
 
     template <typename T>
     constexpr auto GetExtensionId() -> ExtensionId
     {
-        static auto id = DependencyCount++;
+        static auto id = ExtensionCount++;
 
         return id;
     }
