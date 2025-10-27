@@ -172,7 +172,7 @@ namespace SKIRNIR_NAMESPACE
             fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': {}\n",
                        std::chrono::system_clock::now(), typeName, line);
 
-            abort();
+            throw std::runtime_error(line);
         }
 
         static inline auto typeName = type_name<T>();
