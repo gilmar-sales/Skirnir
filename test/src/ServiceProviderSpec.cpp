@@ -76,5 +76,5 @@ TEST_F(ServiceProviderSpec,
 
 TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 {
-    ASSERT_DEATH(mServiceProvider->GetService<ScopedService>(), ".*");
+    EXPECT_DEATH(mServiceProvider->GetService<ScopedService>(), ".*");
 }
