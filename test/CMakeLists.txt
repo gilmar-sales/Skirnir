@@ -22,4 +22,4 @@ add_executable(SkirnirTest_run ${TESTS_SRC})
 
 target_link_libraries(SkirnirTest_run skirnir::skirnir gtest gtest_main)
 
-gtest_discover_tests(Tests_run)
+gtest_discover_tests(SkirnirTest_run)
