@@ -16,6 +16,8 @@ namespace SKIRNIR_NAMESPACE
         return id;
     }
 
+    class ApplicationBuilder;
+
     class IExtension
     {
       public:
