@@ -12,6 +12,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(gtest)
 
 enable_testing()
+include(GoogleTest)
 
 file(GLOB_RECURSE TESTS_SRC
         "src/*.cpp"
@@ -20,3 +21,5 @@ file(GLOB_RECURSE TESTS_SRC
 add_executable(SkirnirTest_run ${TESTS_SRC})
 
 target_link_libraries(SkirnirTest_run skirnir::skirnir gtest gtest_main)
+
+gtest_discover_tests(Tests_run)
