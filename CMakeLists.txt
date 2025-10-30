@@ -7,16 +7,11 @@ project(Skirnir LANGUAGES CXX VERSION 0.14.2)
 
 set(CMAKE_CXX_STANDARD 23)
 
+option(SKIRNIR_USE_FMT OFF CACHE)
+
 if (NOT TARGET skirnir)
 
     include(FetchContent)
-
-    FetchContent_Declare(
-            fmt
-            GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-            GIT_TAG "11.1.4"
-    )
-    FetchContent_MakeAvailable(fmt)
 
     add_library(skirnir
             src/ServiceScope.cpp
@@ -24,7 +19,18 @@ if (NOT TARGET skirnir)
 
     add_library(skirnir::skirnir ALIAS skirnir)
 
-    target_link_libraries(skirnir fmt::fmt)
+    if (${SKIRNIR_USE_FMT})
+        target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)
+
+        FetchContent_Declare(
+                fmt
+                GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+                GIT_TAG "11.1.4"
+        )
+        FetchContent_MakeAvailable(fmt)
+
+        target_link_libraries(skirnir fmt::fmt)
+    endif ()
 endif ()
 
 target_include_directories(skirnir PUBLIC include)

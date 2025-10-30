@@ -1,8 +1,13 @@
 #pragma once
+#include <chrono>
 
-#include <fmt/chrono.h>
-#include <fmt/color.h>
-#include <fmt/core.h>
+#ifdef SKIRNIR_USE_FMT
+    #include <fmt/chrono.h>
+    #include <fmt/color.h>
+    #include <fmt/core.h>
+#else
+    #include <print>
+#endif
 
 #include "Common.hpp"
 
@@ -73,16 +78,17 @@ namespace SKIRNIR_NAMESPACE
         {
         }
 
+#ifdef SKIRNIR_USE_FMT
         template <typename... TArgs>
         inline void Assert(bool assertion, fmt::format_string<TArgs...> fmt,
                            TArgs&&... args)
         {
-#ifndef NDEBUG
+    #ifndef NDEBUG
             if (!assertion)
             {
                 LogFatal(fmt, std::forward<TArgs>(args)...);
             }
-#endif
+    #endif
         }
 
         template <typename... TArgs>
@@ -92,7 +98,7 @@ namespace SKIRNIR_NAMESPACE
                 return;
 
             fmt::print(fg(fmt::color::forest_green), "[Debug] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+                       std::chrono::system_clock::now(), type_name<T>());
 
             fmt::print(fg(fmt::color::forest_green), fmt,
                        std::forward<TArgs>(args)...);
@@ -107,7 +113,7 @@ namespace SKIRNIR_NAMESPACE
                 return;
 
             fmt::print(fg(fmt::color::gainsboro), "[Trace] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+                       std::chrono::system_clock::now(), type_name<T>());
 
             fmt::print(fg(fmt::color::gainsboro), fmt,
                        std::forward<TArgs>(args)...);
@@ -123,7 +129,7 @@ namespace SKIRNIR_NAMESPACE
                 return;
 
             fmt::print(fg(fmt::color::sky_blue), "[Information] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+                       std::chrono::system_clock::now(), type_name<T>());
 
             fmt::print(fg(fmt::color::sky_blue), fmt,
                        std::forward<TArgs>(args)...);
@@ -139,7 +145,7 @@ namespace SKIRNIR_NAMESPACE
                 return;
 
             fmt::print(fg(fmt::color::gold), "[Warning] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+                       std::chrono::system_clock::now(), type_name<T>());
 
             fmt::print(fg(fmt::color::gold), fmt, std::forward<TArgs>(args)...);
 
@@ -153,7 +159,7 @@ namespace SKIRNIR_NAMESPACE
                 return;
 
             fmt::print(fg(fmt::color::crimson), "[Error] {} '{}': ",
-                       std::chrono::system_clock::now(), typeName);
+                       std::chrono::system_clock::now(), type_name<T>());
 
             fmt::print(fg(fmt::color::crimson), fmt,
                        std::forward<TArgs>(args)...);
@@ -170,12 +176,107 @@ namespace SKIRNIR_NAMESPACE
             const auto line = fmt::format(fmt, std::forward<TArgs>(args)...);
 
             fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': {}\n",
-                       std::chrono::system_clock::now(), typeName, line);
+                       std::chrono::system_clock::now(), type_name<T>(), line);
+
+            throw std::runtime_error(line);
+        }
+#else
+
+        template <typename... TArgs>
+        inline void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Trace)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Trace] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
+        }
+
+        template <typename... TArgs>
+        inline void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Debug)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Debug] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
+        }
+
+        template <typename... TArgs>
+        inline void LogInformation(std::format_string<TArgs...> fmt,
+                                   TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Information)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Information] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
+        }
+
+        template <typename... TArgs>
+        inline void LogWarning(std::format_string<TArgs...> fmt,
+                               TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Warning)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Warning] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
+        }
+
+        template <typename... TArgs>
+        inline void LogError(std::format_string<TArgs...> fmt, TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Error)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Error] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
+        }
+
+        template <typename... TArgs>
+        inline void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args)
+        {
+            if (mLoggerOptions->logLevel > LogLevel::Fatal)
+                return;
+
+            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
+
+            std::println("[Fatal] {} '{}': {}",
+                         std::chrono::system_clock::now(), type_name<T>(),
+                         line);
 
             throw std::runtime_error(line);
         }
 
-        static inline auto typeName = type_name<T>();
+        template <typename... TArgs>
+        inline void Assert(bool assertion, std::format_string<TArgs...> fmt,
+                           TArgs&&... args)
+        {
+    #ifndef NDEBUG
+            if (!assertion)
+            {
+                LogFatal(fmt, std::forward<TArgs>(args)...);
+            }
+    #endif
+        }
+#endif
+
         Ref<LoggerOptions> mLoggerOptions;
     };
 
