@@ -30,6 +30,8 @@ if (NOT TARGET skirnir)
         FetchContent_MakeAvailable(fmt)
 
         target_link_libraries(skirnir fmt::fmt)
+    elseif (CMAKE_COMPILER_IS_GNUCXX)
+        target_link_libraries(skirnir stdc++exp)
     endif ()
 endif ()
 
