@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.30)
 
-project(SkirnirTest CXX)
+project(SkirnirTest LANGUAGES C CXX VERSION 0.13.1)
 
 set(CMAKE_CXX_STANDARD 23)
 
 FetchContent_Declare(
-  gtest
-  GIT_REPOSITORY "https://github.com/google/googletest"
-  GIT_TAG        "v1.16.0"
+        gtest
+        GIT_REPOSITORY "https://github.com/google/googletest"
+        GIT_TAG "v1.16.0"
 )
 FetchContent_MakeAvailable(gtest)
 
