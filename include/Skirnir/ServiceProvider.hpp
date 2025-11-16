@@ -9,6 +9,7 @@
 
 namespace SKIRNIR_NAMESPACE
 {
+    class IApplication;
 
     class ServiceProvider : public std::enable_shared_from_this<ServiceProvider>
     {
@@ -84,10 +85,25 @@ namespace SKIRNIR_NAMESPACE
                         auto service =
                             serviceDefinition.factory(*this,
                                                       servicesDescriptions);
+
+                        if constexpr (std::is_base_of_v<IApplication, TService>)
+                        {
+                            mApplication =
+                                std::static_pointer_cast<IApplication>(service);
+
+                            return std::static_pointer_cast<TService>(service);
+                        }
+
                         mSingletonsCache->emplace(GetServiceId<TService>(),
                                                   service);
 
                         return std::static_pointer_cast<TService>(service);
+                    }
+
+                    if constexpr (std::is_base_of_v<IApplication, TService>)
+                    {
+                        return std::static_pointer_cast<TService>(
+                            mApplication.lock());
                     }
 
                     servicesDescriptions.erase(serviceDescription);
@@ -134,6 +150,7 @@ namespace SKIRNIR_NAMESPACE
         Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
         Ref<ServicesCache>           mSingletonsCache;
         Ref<ServicesCache>           mScopeCache;
+        std::weak_ptr<IApplication>  mApplication;
     };
 
 } // namespace SKIRNIR_NAMESPACE

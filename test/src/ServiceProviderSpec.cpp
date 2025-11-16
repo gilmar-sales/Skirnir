@@ -78,3 +78,15 @@ TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 {
     EXPECT_ANY_THROW(mServiceProvider->GetService<ScopedService>());
 }
+
+TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
+{
+    // Arrange
+    std::weak_ptr service = mServiceProvider;
+
+    // Act
+    mServiceProvider.reset();
+
+    // Assert
+    ASSERT_TRUE(service.expired());
+}
