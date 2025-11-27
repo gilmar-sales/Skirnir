@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.28)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
-project(Skirnir LANGUAGES CXX VERSION 0.15.1)
+project(Skirnir LANGUAGES CXX VERSION 0.15.2)
 
 set(CMAKE_CXX_STANDARD 23)
 

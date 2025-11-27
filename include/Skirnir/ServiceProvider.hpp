@@ -53,7 +53,8 @@ namespace SKIRNIR_NAMESPACE
                 ServiceDescription { .id   = GetServiceId<TService>(),
                                      .name = type_name<TService>() };
 
-            if (servicesDescriptions.contains(serviceDescription))
+            if (servicesDescriptions.contains(serviceDescription) &&
+                !mSingletonsCache->contains(GetServiceId<TService>()))
             {
                 mLogger->LogFatal("Circular dependency detected between "
                                   "services: '{}' and '{}'",
