@@ -1,4 +1,4 @@
-#include <Skirnir/Skirnir.hpp>
+#include <Skirnir/Skirnir:hpp>
 #include <unordered_set>
 
 #include "gtest/gtest.h"

@@ -1,29 +1,22 @@
-#pragma once
+export module Skirnir:Core;
 
-#include <functional>
-#include <map>
-#include <memory>
-#include <set>
+import std;
 
-#define SKIRNIR_NAMESPACE skr
-
-#include "ServiceId.hpp"
-
-template <typename T>
+export template <typename T>
 using Ref = std::shared_ptr<T>;
 
-#ifdef _MSC_VER
-    #define __PRETTY_FUNCTION__ __FUNCSIG__
-#endif
-
-namespace SKIRNIR_NAMESPACE
+export namespace skr
 {
+
+    class ServiceProvider;
+
     template <typename T, typename... TArgs>
         requires(std::is_constructible_v<T, TArgs...>)
-    inline Ref<T> MakeRef(TArgs&&... args)
+    Ref<T> MakeRef(TArgs&&... args)
     {
         return std::make_shared<T>(std::forward<TArgs>(args)...);
     }
+
     enum class LifeTime
     {
         Transient,
@@ -31,9 +24,17 @@ namespace SKIRNIR_NAMESPACE
         Singleton
     };
 
-    class ServiceCollection;
-    class ServiceProvider;
-    class ServiceScope;
+    using ServiceId = unsigned long;
+
+    inline ServiceId DependencyCount = 0;
+
+    template <typename T>
+    constexpr auto GetServiceId() -> ServiceId
+    {
+        static auto id = DependencyCount++;
+
+        return id;
+    }
 
     using ServiceFactory = std::function<Ref<void>(ServiceProvider&)>;
 
@@ -72,4 +73,4 @@ namespace SKIRNIR_NAMESPACE
     using ServiceDefinitionMap = std::map<ServiceId, ServiceDefinition>;
     using ServicesCache        = std::map<ServiceId, Ref<void>>;
 
-} // namespace SKIRNIR_NAMESPACE
+} // namespace skr

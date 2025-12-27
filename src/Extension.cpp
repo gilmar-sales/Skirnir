@@ -1,9 +1,11 @@
-#pragma once
+export module Skirnir:Extension;
 
-#include "ServiceCollection.hpp"
+import :ServiceCollection;
+import :ServiceProvider;
 
-namespace SKIRNIR_NAMESPACE
+export namespace skr
 {
+    class ApplicationBuilder;
     using ExtensionId = unsigned long;
 
     inline ExtensionId ExtensionCount = 0;
@@ -15,8 +17,6 @@ namespace SKIRNIR_NAMESPACE
 
         return id;
     }
-
-    class ApplicationBuilder;
 
     class IExtension
     {
@@ -31,4 +31,4 @@ namespace SKIRNIR_NAMESPACE
         virtual void UseServices(ServiceProvider& serviceProvider) {};
     };
 
-} // namespace SKIRNIR_NAMESPACE
+} // namespace skr

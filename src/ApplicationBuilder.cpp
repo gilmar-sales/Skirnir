@@ -1,11 +1,11 @@
-#pragma once
+export module Skirnir:ApplicationBuilder;
 
-#include <type_traits>
+import std;
 
-#include "Application.hpp"
-#include "Extension.hpp"
+import :Application;
+export import :Extension;
 
-namespace SKIRNIR_NAMESPACE
+export namespace skr
 {
 
     class ApplicationBuilder
@@ -33,7 +33,8 @@ namespace SKIRNIR_NAMESPACE
         {
             auto extension = GetOrCreateExtension<TExtension>();
 
-            configureExtensionFunc(*std::static_pointer_cast<TExtension>(extension));
+            configureExtensionFunc(
+                *std::static_pointer_cast<TExtension>(extension));
 
             extension->Attach(*this);
 
@@ -81,4 +82,4 @@ namespace SKIRNIR_NAMESPACE
         std::map<ExtensionId, Ref<IExtension>> mExtensions;
     };
 
-} // namespace SKIRNIR_NAMESPACE
+} // namespace skr

@@ -1,10 +1,10 @@
-#pragma once
+export module Skirnir:Application;
 
-#include "Common.hpp"
-#include "ServiceProvider.hpp"
+import :Core;
 
-namespace SKIRNIR_NAMESPACE
+export namespace skr
 {
+
     class IApplication
     {
       public:
@@ -25,4 +25,4 @@ namespace SKIRNIR_NAMESPACE
       protected:
         Ref<ServiceProvider> mRootServiceProvider;
     };
-} // namespace SKIRNIR_NAMESPACE
+} // namespace skr

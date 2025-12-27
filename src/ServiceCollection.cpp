@@ -1,16 +1,13 @@
-#pragma once
 
-#include <any>
-#include <cassert>
-#include <functional>
-#include <memory>
+export module Skirnir:ServiceCollection;
 
-#include "Common.hpp"
-#include "Reflection.hpp"
-#include "ServiceId.hpp"
-#include "ServiceProvider.hpp"
+import std;
 
-namespace SKIRNIR_NAMESPACE
+import :Logger;
+import :Reflection;
+import :ServiceProvider;
+
+export namespace skr
 {
 
     class ServiceCollection
@@ -48,7 +45,7 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService> &&
-                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+                     std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddSingleton()
         {
             AddServiceWithConstructorArgs<TContract, TService>(
@@ -58,7 +55,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-            requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
+            requires(std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddSingleton()
         {
             AddServiceWithConstructorArgs<TService, TService>(
@@ -116,7 +113,7 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService> &&
-                     std::tuple_size_v<refl::as_tuple<TService>> == 0)
+                     std::tuple_size_v<get_constructor_args<TService>> == 0)
         ServiceCollection& AddTransient()
         {
             AddService<TContract, TService>(LifeTime::Transient);
@@ -126,7 +123,7 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService> &&
-                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+                     std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddTransient()
         {
             AddServiceWithConstructorArgs<TContract, TService>(
@@ -136,7 +133,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-            requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
+            requires(std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddTransient()
         {
             AddServiceWithConstructorArgs<TService, TService>(
@@ -146,7 +143,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-            requires(std::tuple_size_v<refl::as_tuple<TService>> == 0)
+            requires(std::tuple_size_v<get_constructor_args<TService>> == 0)
         ServiceCollection& AddTransient()
         {
             AddService<TService, TService>(LifeTime::Transient);
@@ -175,7 +172,7 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService> &&
-                     std::tuple_size_v<refl::as_tuple<TService>> == 0)
+                     std::tuple_size_v<get_constructor_args<TService>> == 0)
         ServiceCollection& AddScoped()
         {
             AddService<TContract, TService>(LifeTime::Scoped);
@@ -185,7 +182,7 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService> &&
-                     std::tuple_size_v<refl::as_tuple<TService>> > 0)
+                     std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddScoped()
         {
             AddServiceWithConstructorArgs<TContract, TService>(
@@ -195,7 +192,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-            requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
+            requires(std::tuple_size_v<get_constructor_args<TService>> > 0)
         ServiceCollection& AddScoped()
         {
             AddServiceWithConstructorArgs<TService, TService>(LifeTime::Scoped);
@@ -248,11 +245,11 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-            requires(std::tuple_size_v<refl::as_tuple<TService>> > 0)
+            requires(std::tuple_size_v<get_constructor_args<TService>> > 0)
         void AddServiceWithConstructorArgs(const LifeTime lifeTime)
         {
 
-            using ConstructorArgs = refl::as_tuple<TService>;
+            using ConstructorArgs = get_constructor_args<TService>;
 
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
@@ -346,4 +343,4 @@ namespace SKIRNIR_NAMESPACE
         Ref<ServiceDefinitionMap>      mServiceDefinitionMap;
     };
 
-} // namespace SKIRNIR_NAMESPACE
+} // namespace skr

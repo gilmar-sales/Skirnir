@@ -1,7 +1,5 @@
-#include <chrono>
-#include <iostream>
-
-#include <Skirnir/Skirnir.hpp>
+import std;
+import Skirnir;
 
 class IRepository
 {

@@ -1,25 +1,14 @@
-#pragma once
+export module Skirnir:Reflection;
+
+import std;
+
+export namespace skr
+{
 
 #ifdef __GNUC__
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wnon-template-friend"
 #endif
-
-// #pragma warning(push)
-// #pragma warning(disable: 4396)
-
-#include <tuple>
-#include <utility>
-
-// Based on
-// * http://alexpolt.github.io/type-loophole.html
-//   https://github.com/alexpolt/luple/blob/master/type-loophole.h
-//   by Alexandr Poltavsky, http://alexpolt.github.io
-// * https://www.youtube.com/watch?v=UlNUNxLtBI0
-//   Better C++14 reflections - Antony Polukhin - Meeting C++ 2018
-
-namespace refl
-{
 
     // tag<T, N> generates friend declarations and helps with overload
     // resolution. There are two types: one with the auto return type, which is
@@ -111,13 +100,42 @@ namespace refl
     };
 
     template <typename T>
-    using as_tuple = typename loophole_tuple<
+    using get_constructor_args = typename loophole_tuple<
         T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
-
-} // namespace refl
 
 #ifdef __GNUC__
     #pragma GCC diagnostic pop
 #endif
 
-// #pragma warning(pop)
+    template <typename T>
+    constexpr char* type_name()
+    {
+#if defined(__clang__)
+        // __PRETTY_FUNCTION__ on Clang/GCC looks like:
+        //   std::string type_name() [with T = MyNamespace::MyType]
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end    = pretty.rfind(']');
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+#elif defined(__GNUC__)
+        // __PRETTY_FUNCTION__ on Clang/GCC looks like:
+        //   std::string type_name() [with T = MyNamespace::MyType]
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end = std::min(pretty.rfind(']'), pretty.rfind(';'));
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+#elif defined(_MSC_VER)
+        // __FUNCSIG__ on MSVC looks like:
+        //   std::string __cdecl type_name<TYPE>(void)
+        static std::string pretty = __FUNCSIG__;
+        static auto        start  = pretty.find("type_name<") + 16;
+        static auto        end    = pretty.rfind(">(void)");
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+#else
+        return "Unknown Compiler";
+#endif
+    }
+} // namespace skr
