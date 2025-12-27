@@ -1,4 +1,4 @@
-#include <Skirnir/Skirnir:hpp>
+import Skirnir;
 
 #include "gtest/gtest.h"
 

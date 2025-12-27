@@ -126,12 +126,10 @@ export namespace skr
         inline void Assert(bool assertion, std::format_string<TArgs...> fmt,
                            TArgs&&... args)
         {
-#ifndef NDEBUG
             if (!assertion)
             {
                 LogFatal(fmt, std::forward<TArgs>(args)...);
             }
-#endif
         }
 
         Ref<LoggerOptions> mLoggerOptions;
