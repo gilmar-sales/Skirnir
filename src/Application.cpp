@@ -8,14 +8,14 @@ export namespace skr
     class IApplication
     {
       public:
-        IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
+        explicit IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
             mRootServiceProvider(rootServiceProvider)
         {
         }
 
         virtual ~IApplication() = default;
 
-        ServiceProvider& GetRootServiceProvider()
+        [[nodiscard]] ServiceProvider& GetRootServiceProvider() const
         {
             return *mRootServiceProvider;
         }
@@ -25,4 +25,5 @@ export namespace skr
       protected:
         Ref<ServiceProvider> mRootServiceProvider;
     };
+
 } // namespace skr

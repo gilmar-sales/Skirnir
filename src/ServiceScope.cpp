@@ -12,7 +12,7 @@ export namespace skr
         ServiceScope(const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
                      const Ref<ServicesCache>&        singletonsCache);
 
-        Ref<ServiceProvider> GetServiceProvider() { return mServiceProvider; };
+        Ref<ServiceProvider> GetServiceProvider() { return mServiceProvider; }
 
       private:
         Ref<ServiceProvider>      mServiceProvider;

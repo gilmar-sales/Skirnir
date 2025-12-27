@@ -45,11 +45,12 @@ export namespace skr
 
         template <typename T>
             requires(std::is_base_of_v<IApplication, T>)
-        Ref<T> Build()
+        [[nodiscard]] Ref<T> Build()
         {
             mServiceCollection->AddSingleton<T>();
 
-            auto serviceProvider = mServiceCollection->CreateServiceProvider();
+            const auto serviceProvider =
+                mServiceCollection->CreateServiceProvider();
 
             for (const auto& [_, extension] : mExtensions)
             {

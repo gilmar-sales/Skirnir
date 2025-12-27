@@ -39,7 +39,7 @@ export namespace skr
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
         }
 
-        Ref<ServiceScope> CreateServiceScope();
+        [[nodiscard]]  Ref<ServiceScope> CreateServiceScope();
 
       private:
         template <typename TService>

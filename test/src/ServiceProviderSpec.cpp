@@ -64,7 +64,7 @@ TEST_F(ServiceProviderSpec, ServiceProviderShouldGetItSelf)
 TEST_F(ServiceProviderSpec,
        ServiceProviderShouldGetDifferentTransientsAtAnyTime)
 {
-    auto transients = std::unordered_set<std::shared_ptr<TransientService>>();
+    auto transients = std::unordered_set<Ref<TransientService>>();
 
     for (int i = 0; i < 10000; ++i)
     {

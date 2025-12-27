@@ -64,10 +64,8 @@ export namespace skr
 
     struct ServiceDefinition
     {
-        std::function<Ref<void>(
-            ServiceProvider&, std::set<ServiceDescription>&)>
-                 factory  = nullptr;
-        LifeTime lifetime = LifeTime::Transient;
+        InternalServiceFactory factory  = nullptr;
+        LifeTime               lifetime = LifeTime::Transient;
     };
 
     using ServiceDefinitionMap = std::map<ServiceId, ServiceDefinition>;

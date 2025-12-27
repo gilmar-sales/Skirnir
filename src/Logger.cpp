@@ -36,7 +36,7 @@ export namespace skr
     class Logger : public ILogger
     {
       public:
-        Logger(Ref<LoggerOptions> loggerOptions) : mLoggerOptions(loggerOptions)
+        explicit Logger(const Ref<LoggerOptions>& loggerOptions) : mLoggerOptions(loggerOptions)
         {
         }
 

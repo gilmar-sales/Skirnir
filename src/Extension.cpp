@@ -5,6 +5,7 @@ import :ServiceProvider;
 
 export namespace skr
 {
+    
     class ApplicationBuilder;
     using ExtensionId = unsigned long;
 
