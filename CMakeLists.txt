@@ -34,18 +34,8 @@ if (NOT TARGET skirnir)
 
     add_library(skirnir::skirnir ALIAS skirnir)
 
-    if (${SKIRNIR_USE_FMT})
-        target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)
-
-        FetchContent_Declare(
-                fmt
-                GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-                GIT_TAG "11.1.4"
-        )
-        FetchContent_MakeAvailable(fmt)
-
-        target_link_libraries(skirnir fmt::fmt)
-    elseif (CMAKE_COMPILER_IS_GNUCXX)
+    
+    if (CMAKE_COMPILER_IS_GNUCXX)
         target_link_libraries(skirnir stdc++exp)
     endif ()
 endif ()
@@ -68,5 +58,7 @@ if (${BUILD_SKIRNIR_EXAMPLES})
 endif ()
 
 if (${BUILD_SKIRNIR_TESTS})
+    enable_testing()
+    include(GoogleTest)
     add_subdirectory(test)
 endif ()

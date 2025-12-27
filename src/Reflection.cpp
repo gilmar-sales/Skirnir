@@ -5,7 +5,7 @@ import std;
 export namespace skr
 {
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wnon-template-friend"
 #endif
@@ -103,7 +103,7 @@ export namespace skr
     using get_constructor_args = typename loophole_tuple<
         T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
     #pragma GCC diagnostic pop
 #endif
 
