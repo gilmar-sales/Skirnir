@@ -17,8 +17,8 @@ export namespace skr
     template <typename T, int N>
     struct tag
     {
-        friend auto          loophole(tag<T, N>);
-        constexpr friend int cloophole(tag<T, N>);
+        inline friend auto          loophole(tag<T, N>);
+        inline constexpr friend int cloophole(tag<T, N>);
     };
 
     // The definitions of friend functions.
@@ -28,8 +28,8 @@ export namespace skr
                   std::remove_cv_t<std::remove_reference_t<U>>>>>
     struct fn_def
     {
-        friend auto          loophole(tag<T, N>) { return U {}; }
-        constexpr friend int cloophole(tag<T, N>) { return 0; }
+        inline friend auto          loophole(tag<T, N>) { return U {}; }
+        inline constexpr friend int cloophole(tag<T, N>) { return 0; }
     };
 
     // This specialization is to avoid multiple definition errors.

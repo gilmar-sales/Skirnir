@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.2)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
@@ -36,7 +36,13 @@ if (NOT TARGET skirnir)
 
     
     if (CMAKE_COMPILER_IS_GNUCXX)
-        target_link_libraries(skirnir stdc++exp)
+        if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
+            target_link_options(skirnir PUBLIC 
+                "-Wl,--warn-unresolved-symbols"
+                "-Wl,--unresolved-symbols=ignore-in-object-files")
+        endif()
+
+        target_link_libraries(skirnir PUBLIC stdc++exp)
     endif ()
 endif ()
 
