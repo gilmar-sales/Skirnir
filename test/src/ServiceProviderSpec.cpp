@@ -1,7 +1,7 @@
-
 #include <unordered_set>
 
 #include "gtest/gtest.h"
+
 import Skirnir;
 
 class SingletonService

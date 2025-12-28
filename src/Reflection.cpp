@@ -138,4 +138,67 @@ export namespace skr
         return "Unknown Compiler";
 #endif
     }
+
+    // Helper to detect if a type is a lambda
+    template <typename T>
+    concept is_lambda = requires { &T::operator(); } && !std::is_function_v<T>;
+
+    // Extract lambda's operator() signature
+    template <typename T>
+    struct lambda_traits;
+
+    // Non-const operator()
+    template <typename Lambda, typename Ret, typename... Args>
+    struct lambda_traits<Ret (Lambda::*)(Args...)>
+    {
+        using return_type                = Ret;
+        using args_tuple                 = std::tuple<Args...>;
+        static constexpr unsigned long long arity    = sizeof...(Args);
+        static constexpr bool   is_const = false;
+    };
+
+    // Const operator()
+    template <typename Lambda, typename Ret, typename... Args>
+    struct lambda_traits<Ret (Lambda::*)(Args...) const>
+    {
+        using return_type                = Ret;
+        using args_tuple                 = std::tuple<Args...>;
+        static constexpr unsigned long long arity    = sizeof...(Args);
+        static constexpr bool   is_const = true;
+    };
+
+    // Noexcept variants
+    template <typename Lambda, typename Ret, typename... Args>
+    struct lambda_traits<Ret (Lambda::*)(Args...) noexcept>
+    {
+        using return_type                = Ret;
+        using args_tuple                 = std::tuple<Args...>;
+        static constexpr unsigned long long arity    = sizeof...(Args);
+        static constexpr bool   is_const = false;
+    };
+
+    template <typename Lambda, typename Ret, typename... Args>
+    struct lambda_traits<Ret (Lambda::*)(Args...) const noexcept>
+    {
+        using return_type                = Ret;
+        using args_tuple                 = std::tuple<Args...>;
+        static constexpr unsigned long long arity    = sizeof...(Args);
+        static constexpr bool   is_const = true;
+    };
+
+    // Main interface
+    template <typename Lambda>
+    struct get_lambda_info : lambda_traits<decltype(&Lambda::operator())>
+    {
+    };
+
+    // Convenience aliases
+    template <typename Lambda>
+    using lambda_args = typename get_lambda_info<Lambda>::args_tuple;
+
+    template <typename Lambda>
+    using lambda_return = typename get_lambda_info<Lambda>::return_type;
+
+    template <typename Lambda>
+    inline constexpr unsigned long long lambda_arity = get_lambda_info<Lambda>::arity;
 } // namespace skr
