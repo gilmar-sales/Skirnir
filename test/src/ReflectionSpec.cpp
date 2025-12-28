@@ -47,7 +47,7 @@ TEST_F(ReflectionSpec, ReflectionShouldGetLambdaArgs)
     auto my_lamda = [](int, float, long) {};
 
     // Act
-    auto args = skr::lambda_args<decltype(my_lamda)>();
+    auto args = skr::callable_args<decltype(my_lamda)>();
 
     auto args_name  = skr::type_name<decltype(args)>();
     auto tuple_name = skr::type_name<std::tuple<int, float, long>>();
@@ -55,16 +55,19 @@ TEST_F(ReflectionSpec, ReflectionShouldGetLambdaArgs)
     ASSERT_STREQ(args_name, tuple_name);
 }
 
+void MyFunction(int, float, long, unsigned)
+{
+}
+
 TEST_F(ReflectionSpec, ReflectionShouldGetFunctionArgs)
 {
     // Arrange
-    auto my_lamda = [](int, float, long) {};
 
     // Act
-    auto args = skr::lambda_args<decltype(my_lamda)>();
+    auto args = skr::callable_args<decltype(MyFunction)>();
 
     auto args_name  = skr::type_name<decltype(args)>();
-    auto tuple_name = skr::type_name<std::tuple<int, float, long>>();
+    auto tuple_name = skr::type_name<std::tuple<int, float, long, unsigned>>();
     // Assert
     ASSERT_STREQ(args_name, tuple_name);
 }

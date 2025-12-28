@@ -72,7 +72,7 @@ export namespace skr
     {
         return fields_number<T, Ns..., sizeof...(Ns)>(0);
     }
-
+    
     // Here is a version of fields_number to handle user-provided ctor.
     // NOTE: It finds the first ctor having the shortest unambigious set
     //       of parameters.
@@ -139,66 +139,270 @@ export namespace skr
 #endif
     }
 
-    // Helper to detect if a type is a lambda
     template <typename T>
-    concept is_lambda = requires { &T::operator(); } && !std::is_function_v<T>;
+    struct callable_traits;
 
-    // Extract lambda's operator() signature
+    template <typename Ret, typename... Args>
+    struct callable_traits<Ret (*)(Args...)>
+    {
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = false;
+    };
+
+    template <typename Ret, typename... Args>
+    struct callable_traits<Ret (*)(Args...) noexcept>
+    {
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = false;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...)>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) volatile>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const volatile>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) volatile noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const volatile noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) &>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const &>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) &&>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const &&>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) & noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const & noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) && noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
+    template <typename Class, typename Ret, typename... Args>
+    struct callable_traits<Ret (Class::*)(Args...) const && noexcept>
+    {
+        using class_type = Class;
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = true;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = true;
+    };
+
     template <typename T>
-    struct lambda_traits;
-
-    // Non-const operator()
-    template <typename Lambda, typename Ret, typename... Args>
-    struct lambda_traits<Ret (Lambda::*)(Args...)>
-    {
-        using return_type                = Ret;
-        using args_tuple                 = std::tuple<Args...>;
-        static constexpr unsigned long long arity    = sizeof...(Args);
-        static constexpr bool   is_const = false;
+    concept has_call_operator = requires {
+        &T::operator();
     };
 
-    // Const operator()
-    template <typename Lambda, typename Ret, typename... Args>
-    struct lambda_traits<Ret (Lambda::*)(Args...) const>
-    {
-        using return_type                = Ret;
-        using args_tuple                 = std::tuple<Args...>;
-        static constexpr unsigned long long arity    = sizeof...(Args);
-        static constexpr bool   is_const = true;
-    };
-
-    // Noexcept variants
-    template <typename Lambda, typename Ret, typename... Args>
-    struct lambda_traits<Ret (Lambda::*)(Args...) noexcept>
-    {
-        using return_type                = Ret;
-        using args_tuple                 = std::tuple<Args...>;
-        static constexpr unsigned long long arity    = sizeof...(Args);
-        static constexpr bool   is_const = false;
-    };
-
-    template <typename Lambda, typename Ret, typename... Args>
-    struct lambda_traits<Ret (Lambda::*)(Args...) const noexcept>
-    {
-        using return_type                = Ret;
-        using args_tuple                 = std::tuple<Args...>;
-        static constexpr unsigned long long arity    = sizeof...(Args);
-        static constexpr bool   is_const = true;
-    };
-
-    // Main interface
-    template <typename Lambda>
-    struct get_lambda_info : lambda_traits<decltype(&Lambda::operator())>
+    template <has_call_operator T>
+    struct callable_traits<T> : callable_traits<decltype(&T::operator())>
     {
     };
 
-    // Convenience aliases
-    template <typename Lambda>
-    using lambda_args = typename get_lambda_info<Lambda>::args_tuple;
+    template <typename Ret, typename... Args>
+    struct callable_traits<Ret(Args...)>
+    {
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = false;
+        static constexpr bool is_member = false;
+    };
 
-    template <typename Lambda>
-    using lambda_return = typename get_lambda_info<Lambda>::return_type;
+    template <typename Ret, typename... Args>
+    struct callable_traits<Ret(Args...) noexcept>
+    {
+        using return_type = Ret;
+        using args_tuple = std::tuple<Args...>;
+        static constexpr size_t arity = sizeof...(Args);
+        static constexpr bool is_const = false;
+        static constexpr bool is_noexcept = true;
+        static constexpr bool is_member = false;
+    };
 
-    template <typename Lambda>
-    inline constexpr unsigned long long lambda_arity = get_lambda_info<Lambda>::arity;
+    template <typename T>
+    using callable_return = typename callable_traits<T>::return_type;
+
+    template <typename T>
+    using callable_args = typename callable_traits<T>::args_tuple;
+
+    template <typename T>
+    inline constexpr size_t callable_arity = callable_traits<T>::arity;
+
+    template <typename T>
+    inline constexpr bool is_const_callable = callable_traits<T>::is_const;
+
+    template <typename T>
+    inline constexpr bool is_noexcept_callable = callable_traits<T>::is_noexcept;
+
+    template <typename T, size_t N>
+    using callable_arg = std::tuple_element_t<N, callable_args<T>>;
 } // namespace skr
