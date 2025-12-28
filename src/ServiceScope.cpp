@@ -1,20 +1,23 @@
-#include "Skirnir/ServiceScope.hpp"
-#include "Skirnir/ServiceProvider.hpp"
+export module Skirnir:ServiceScope;
 
-namespace SKIRNIR_NAMESPACE
+export import :Core;
+export import :ServiceProvider;
+
+export namespace skr
 {
 
-    ServiceScope::ServiceScope(
-        const std::shared_ptr<ServiceDefinitionMap>& serviceDefinitionMap,
-        const std::shared_ptr<ServicesCache>&        singletonsCache) :
-        mServiceDefinitionMap(serviceDefinitionMap),
-        mSingletonsCache(singletonsCache), mScopeCache(MakeRef<ServicesCache>())
+    class ServiceScope
     {
-        mServiceProvider = MakeRef<ServiceProvider>(
-            mServiceDefinitionMap,
-            mSingletonsCache,
-            mScopeCache,
-            true);
-    }
+      public:
+        ServiceScope(const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
+                     const Ref<ServicesCache>&        singletonsCache);
 
-} // namespace SKIRNIR_NAMESPACE
+        Ref<ServiceProvider> GetServiceProvider() { return mServiceProvider; }
+
+      private:
+        Ref<ServiceProvider>      mServiceProvider;
+        Ref<ServiceDefinitionMap> mServiceDefinitionMap;
+        Ref<ServicesCache>        mSingletonsCache;
+        Ref<ServicesCache>        mScopeCache;
+    };
+} // namespace skr
