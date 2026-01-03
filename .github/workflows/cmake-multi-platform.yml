@@ -58,11 +58,9 @@ jobs:
     - name: switch to gcc-15 on linux
       if: matrix.os == 'ubuntu-latest'
       run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
         sudo apt update
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-        sudo apt update
-        sudo apt install -y gcc-15 g++-15
+        sudo apt install -y software-properties-common gcc-15 g++-15
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100 --slave /usr/bin/g++ g++ /usr/bin/g++-15 --slave /usr/bin/gcov gcov /usr/bin/gcov-15
         sudo update-alternatives --set gcc /usr/bin/gcc-15
 
