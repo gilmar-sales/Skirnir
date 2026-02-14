@@ -147,7 +147,7 @@ export namespace skr
     {
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = false;
@@ -158,7 +158,7 @@ export namespace skr
     {
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = false;
@@ -170,7 +170,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -182,7 +182,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -194,7 +194,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -206,7 +206,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -218,7 +218,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -230,7 +230,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -242,7 +242,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -254,7 +254,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -266,7 +266,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -278,7 +278,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -290,7 +290,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -302,7 +302,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = true;
@@ -314,7 +314,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -326,7 +326,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -338,7 +338,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -350,7 +350,7 @@ export namespace skr
         using class_type = Class;
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = true;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = true;
@@ -371,7 +371,7 @@ export namespace skr
     {
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = false;
         static constexpr bool is_member = false;
@@ -382,7 +382,7 @@ export namespace skr
     {
         using return_type = Ret;
         using args_tuple = std::tuple<Args...>;
-        static constexpr size_t arity = sizeof...(Args);
+        static constexpr std::size_t arity = sizeof...(Args);
         static constexpr bool is_const = false;
         static constexpr bool is_noexcept = true;
         static constexpr bool is_member = false;
@@ -395,7 +395,7 @@ export namespace skr
     using callable_args = typename callable_traits<T>::args_tuple;
 
     template <typename T>
-    inline constexpr size_t callable_arity = callable_traits<T>::arity;
+    inline constexpr std::size_t callable_arity = callable_traits<T>::arity;
 
     template <typename T>
     inline constexpr bool is_const_callable = callable_traits<T>::is_const;
@@ -403,6 +403,6 @@ export namespace skr
     template <typename T>
     inline constexpr bool is_noexcept_callable = callable_traits<T>::is_noexcept;
 
-    template <typename T, size_t N>
+    template <typename T, std::size_t N>
     using callable_arg = std::tuple_element_t<N, callable_args<T>>;
 } // namespace skr
