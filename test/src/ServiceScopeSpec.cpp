@@ -1,6 +1,6 @@
-#include <Skirnir/Skirnir.hpp>
-
 #include "gtest/gtest.h"
+
+import Skirnir;
 
 class SingletonService
 {

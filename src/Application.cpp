@@ -1,21 +1,21 @@
-#pragma once
+export module Skirnir:Application;
 
-#include "Common.hpp"
-#include "ServiceProvider.hpp"
+import :Core;
 
-namespace SKIRNIR_NAMESPACE
+export namespace skr
 {
+
     class IApplication
     {
       public:
-        IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
+        explicit IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
             mRootServiceProvider(rootServiceProvider)
         {
         }
 
         virtual ~IApplication() = default;
 
-        ServiceProvider& GetRootServiceProvider()
+        [[nodiscard]] ServiceProvider& GetRootServiceProvider() const
         {
             return *mRootServiceProvider;
         }
@@ -25,4 +25,5 @@ namespace SKIRNIR_NAMESPACE
       protected:
         Ref<ServiceProvider> mRootServiceProvider;
     };
-} // namespace SKIRNIR_NAMESPACE
+
+} // namespace skr
