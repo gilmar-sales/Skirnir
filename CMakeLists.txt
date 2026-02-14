@@ -61,6 +61,7 @@ endif ()
 
 if (${BUILD_SKIRNIR_EXAMPLES})
     add_subdirectory(examples)
+    add_subdirectory(benchmark)
 endif ()
 
 if (${BUILD_SKIRNIR_TESTS})
