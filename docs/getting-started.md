@@ -4,7 +4,7 @@
 
 - C++20 or later compiler
 - CMake 3.16 or later
-- Optional: fmt library for enhanced logging (enable with `SKIRNIR_USE_FMT`)
+- Optional: **the** fmt library for enhanced logging (enable with `SKIRNIR_USE_FMT`)
 
 ## Building
 
@@ -31,6 +31,8 @@ ctest
 4. Request services via `GetService<T>()`
 
 ```cpp
+#include <Skirnir/Skirnir.hpp>
+
 auto serviceCollection = skr::ServiceCollection();
 serviceCollection.AddSingleton<MyService>();
 

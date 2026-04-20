@@ -1,12 +1,12 @@
 # Lifetimes
 
-Skirnir supports three service lifetimes, inspired by Microsoft.Extensions.DependencyInjection:
+Skirnir supports three service lifetimes, inspired by **the** Microsoft.Extensions.DependencyInjection:
 
 | Lifetime  | Description                                                                                              |
 |-----------|----------------------------------------------------------------------------------------------------------|
-| Singleton | Single instance per application (until a new root service provider is created)                         |
-| Scoped    | One instance per scope, reused within that scope                                                         |
-| Transient | New instance created each time the service is requested                                                 |
+| Singleton | Single instance per application.                                                                         |
+| Scoped    | One instance per scope, reused within that scope.                                                        |
+| Transient | New instance created each time the service is requested.                                                 |
 
 ## Singleton
 

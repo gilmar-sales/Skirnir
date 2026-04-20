@@ -18,7 +18,7 @@ Ref<T> MakeRef(TArgs&&... args);
 
 ### LifeTime
 
-Enum specifying service lifetime:
+Enum specifying a service lifetime:
 
 | Value      | Description                                      |
 |------------|--------------------------------------------------|

@@ -1,11 +1,11 @@
 # Skirnir
 
-Skirnir provides an IoC Container, it uses [The C++ Type Loophole](https://alexpolt.github.io/type-loophole.html) to get
-constructor parameters and allow registering services for **dependency injection**
+Skirnir provides an IoC Container. It uses [The C++ Type Loophole](https://alexpolt.github.io/type-loophole.html) to get
+constructor parameters and to allow registering services for **dependency injection**
 
 # Lifetimes
 
-Skirnir it's inspired by the microsoft dependency injection, services should be registered with a specific lifetime:
+Skirnir is inspired by the Microsoft dependency injection.
 
 | Lifetime  | Description                                                                                                  |
 |-----------|--------------------------------------------------------------------------------------------------------------|
@@ -16,7 +16,9 @@ Skirnir it's inspired by the microsoft dependency injection, services should be 
 # Usage
 
 ## Concrete type
-start by creating the ServiceCollection and add your services by the concrete types
+
+Start by creating the ServiceCollection and add your services by the concrete types.
+
 ```cpp
     auto serviceCollection = skr::ServiceCollection();
 
@@ -41,8 +43,8 @@ class Scoped {
 public:
     Scoped(Ref<ITransient> transient) : mTransient(transient) {}
 private:
-    ITransient mTransient;
-}
+    Ref<ITransient> mTransient;
+};
 ```
 
 ## Logging
