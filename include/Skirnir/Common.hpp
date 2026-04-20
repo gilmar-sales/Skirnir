@@ -8,7 +8,6 @@
 
 #define SKIRNIR_NAMESPACE skr
 
-#include "Arc.hpp"
 #include "ServiceId.hpp"
 
 template <typename T>

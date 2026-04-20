@@ -7,7 +7,6 @@
 #include "Reflection.hpp"
 #include "ServiceId.hpp"
 #include "ServiceProvider.hpp"
-#include "Skirnir/Arc.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
