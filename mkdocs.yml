@@ -2,7 +2,7 @@ site_name: Skirnir
 site_description: Skirnir provides an IoC Container, it uses the ' C++ Type Loophole' to get the list of constructor parameters and allow register services for dependency injection.
 site_url: https://gilmar-sales.github.io/Skirnir
 repo_url: https://github.com/Skirnir/Skirnir
-repo_name: gilmar-sales/Freyr
+repo_name: gilmar-sales/Skirnir
 edit_uri: edit/main/docs/
 
 theme:
