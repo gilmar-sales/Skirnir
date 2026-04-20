@@ -4,7 +4,7 @@
 namespace SKIRNIR_NAMESPACE
 {
 
-    Ref<ServiceScope> ServiceProvider::CreateServiceScope()
+    Ref<ServiceScope> ServiceProvider::CreateServiceScope() const
     {
         return MakeRef<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
     };

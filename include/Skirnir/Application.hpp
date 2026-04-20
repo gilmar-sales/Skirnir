@@ -15,9 +15,9 @@ namespace SKIRNIR_NAMESPACE
 
         virtual ~IApplication() = default;
 
-        ServiceProvider& GetRootServiceProvider()
+        Ref<ServiceProvider> GetRootServiceProvider() const
         {
-            return *mRootServiceProvider;
+            return mRootServiceProvider;
         }
 
         virtual void Run() = 0;

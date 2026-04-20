@@ -26,7 +26,7 @@ TEST_F(ServiceCollectionSpec, ServiceCollectionShouldAddSingletonByInstance)
     ASSERT_TRUE(mServiceCollection->Contains<SingletonService>());
 }
 
-TEST_F(ServiceCollectionSpec, ServiceCollectionCreateServiceProvider)
+TEST_F(ServiceCollectionSpec, ServiceCollectionShouldCreateServiceProvider)
 {
     mServiceCollection->AddSingleton(skr::MakeRef<SingletonService>());
 

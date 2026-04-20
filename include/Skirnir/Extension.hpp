@@ -23,12 +23,9 @@ namespace SKIRNIR_NAMESPACE
       public:
         virtual ~IExtension() = default;
 
-      private:
-        friend class ApplicationBuilder;
-
         virtual void Attach(ApplicationBuilder& applicationBuilder) {};
-        virtual void ConfigureServices(ServiceCollection& services) {};
-        virtual void UseServices(ServiceProvider& serviceProvider) {};
+        virtual void ConfigureServices(Ref<ServiceCollection> services) {};
+        virtual void UseServices(Ref<ServiceProvider> serviceProvider) {};
     };
 
 } // namespace SKIRNIR_NAMESPACE

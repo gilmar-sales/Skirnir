@@ -4,9 +4,11 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <type_traits>
 
 #define SKIRNIR_NAMESPACE skr
 
+#include "Arc.hpp"
 #include "ServiceId.hpp"
 
 template <typename T>
@@ -24,6 +26,13 @@ namespace SKIRNIR_NAMESPACE
     {
         return std::make_shared<T>(std::forward<TArgs>(args)...);
     }
+
+    template <typename TDest, typename TSource>
+    inline Ref<TDest> RefCast(const Ref<TSource>& source)
+    {
+        return std::static_pointer_cast<TDest>(source);
+    }
+
     enum class LifeTime
     {
         Transient,

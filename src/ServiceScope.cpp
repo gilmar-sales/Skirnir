@@ -5,8 +5,8 @@ namespace SKIRNIR_NAMESPACE
 {
 
     ServiceScope::ServiceScope(
-        const std::shared_ptr<ServiceDefinitionMap>& serviceDefinitionMap,
-        const std::shared_ptr<ServicesCache>&        singletonsCache) :
+        const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
+        const Ref<ServicesCache>&        singletonsCache) :
         mServiceDefinitionMap(serviceDefinitionMap),
         mSingletonsCache(singletonsCache), mScopeCache(MakeRef<ServicesCache>())
     {

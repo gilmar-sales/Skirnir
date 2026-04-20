@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 23)
 FetchContent_Declare(
         gtest
         GIT_REPOSITORY "https://github.com/google/googletest"
-        GIT_TAG "v1.16.0"
+        GIT_TAG "v1.17.0"
 )
 FetchContent_MakeAvailable(gtest)
 

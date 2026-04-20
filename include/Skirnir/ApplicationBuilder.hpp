@@ -1,9 +1,8 @@
 #pragma once
 
-#include <type_traits>
-
 #include "Application.hpp"
 #include "Extension.hpp"
+#include "Skirnir/Common.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -15,29 +14,30 @@ namespace SKIRNIR_NAMESPACE
         {
         }
 
-        ServiceCollection& GetServiceCollection()
+        Ref<ServiceCollection> GetServiceCollection()
         {
-            return *mServiceCollection;
+            return mServiceCollection;
         }
+
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
         ApplicationBuilder& AddExtension()
         {
-            return AddExtension<TExtension>([](auto&) {});
+            return AddExtension<TExtension>([](Ref<TExtension>) {});
         }
 
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
         ApplicationBuilder& AddExtension(
-            std::function<void(TExtension&)> configureExtensionFunc)
+            std::function<void(Ref<TExtension>)> configureExtensionFunc)
         {
             auto extension = GetOrCreateExtension<TExtension>();
 
-            configureExtensionFunc(*std::static_pointer_cast<TExtension>(extension));
+            configureExtensionFunc(extension);
 
             extension->Attach(*this);
 
-            extension->ConfigureServices(*mServiceCollection);
+            extension->ConfigureServices(mServiceCollection);
 
             return *this;
         }
@@ -50,9 +50,9 @@ namespace SKIRNIR_NAMESPACE
 
             auto serviceProvider = mServiceCollection->CreateServiceProvider();
 
-            for (const auto& [_, extension] : mExtensions)
+            for (auto& [_, extension] : mExtensions)
             {
-                extension->UseServices(*serviceProvider);
+                extension->UseServices(serviceProvider);
             }
 
             auto app = serviceProvider->GetService<T>();
@@ -63,12 +63,12 @@ namespace SKIRNIR_NAMESPACE
       private:
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        Ref<IExtension> GetOrCreateExtension()
+        Ref<TExtension> GetOrCreateExtension()
         {
             if (auto it = mExtensions.find(GetExtensionId<TExtension>());
                 it != mExtensions.end())
             {
-                return it->second;
+                return skr::RefCast<TExtension>(it->second);
             }
 
             auto extension                            = MakeRef<TExtension>();

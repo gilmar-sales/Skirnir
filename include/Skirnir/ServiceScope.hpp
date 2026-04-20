@@ -7,20 +7,19 @@ namespace SKIRNIR_NAMESPACE
     class ServiceScope
     {
       public:
-        ServiceScope(
-            const std::shared_ptr<ServiceDefinitionMap>& serviceDefinitionMap,
-            const std::shared_ptr<ServicesCache>&        singletonsCache);
+        ServiceScope(const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
+                     const Ref<ServicesCache>&        singletonsCache);
 
-        Ref<skr::ServiceProvider> GetServiceProvider()
+        Ref<skr::ServiceProvider> GetServiceProvider() const
         {
             return mServiceProvider;
         };
 
       private:
-        Ref<skr::ServiceProvider>             mServiceProvider;
-        std::shared_ptr<ServiceDefinitionMap> mServiceDefinitionMap;
-        std::shared_ptr<ServicesCache>        mSingletonsCache;
-        std::shared_ptr<ServicesCache>        mScopeCache;
+        Ref<skr::ServiceProvider> mServiceProvider;
+        Ref<ServiceDefinitionMap> mServiceDefinitionMap;
+        Ref<ServicesCache>        mSingletonsCache;
+        Ref<ServicesCache>        mScopeCache;
     };
 
 } // namespace SKIRNIR_NAMESPACE

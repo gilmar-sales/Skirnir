@@ -1,5 +1,4 @@
 #include <chrono>
-#include <iostream>
 
 #include <Skirnir/Skirnir.hpp>
 
@@ -63,7 +62,7 @@ class ExampleApp : public skr::IApplication
     {
         const auto iterationCount = 100'000;
 
-        const auto scope = mRootServiceProvider->CreateServiceScope();
+        auto scope = mRootServiceProvider->CreateServiceScope();
 
         auto begin = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < iterationCount; ++i)
@@ -98,10 +97,11 @@ class ExampleApp : public skr::IApplication
 
 class ExampleExtension final : public skr::IExtension
 {
-    void ConfigureServices(skr::ServiceCollection& services) override
+  public:
+    void ConfigureServices(Ref<skr::ServiceCollection> services) override
     {
         services
-            .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
+            ->AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
                 auto options      = skr::MakeRef<skr::LoggerOptions>();
                 options->logLevel = skr::LogLevel::Information;
                 return options;
@@ -116,7 +116,7 @@ int main()
     auto appBuilder =
         skr::ApplicationBuilder()
             .AddExtension<ExampleExtension>(
-                [](ExampleExtension& exampleExtension) {
+                [](Ref<ExampleExtension> exampleExtension) {
 
                 })
             .AddExtension<ExampleExtension>();

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <source_location>
-
 #include "Common.hpp"
 #include "Logger.hpp"
 #include "ServiceId.hpp"
@@ -39,7 +36,7 @@ namespace SKIRNIR_NAMESPACE
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
         }
 
-        Ref<ServiceScope> CreateServiceScope();
+        Ref<ServiceScope> CreateServiceScope() const;
 
       private:
         template <typename TService>
@@ -73,9 +70,11 @@ namespace SKIRNIR_NAMESPACE
                     serviceDefinition.lifetime)
             {
                 case LifeTime::Transient: {
-                    return std::static_pointer_cast<TService>(
+                    auto service =
                         mServiceDefinitionMap->at(GetServiceId<TService>())
-                            .factory(*this, servicesDescriptions));
+                            .factory(*this, servicesDescriptions);
+
+                    return skr::RefCast<TService>(service);
                 }
                 case LifeTime::Singleton: {
                     const auto it =
@@ -89,27 +88,25 @@ namespace SKIRNIR_NAMESPACE
 
                         if constexpr (std::is_base_of_v<IApplication, TService>)
                         {
-                            mApplication =
-                                std::static_pointer_cast<IApplication>(service);
+                            mApplication = skr::RefCast<IApplication>(service);
 
-                            return std::static_pointer_cast<TService>(service);
+                            return skr::RefCast<TService>(service);
                         }
 
                         mSingletonsCache->emplace(GetServiceId<TService>(),
                                                   service);
 
-                        return std::static_pointer_cast<TService>(service);
+                        return skr::RefCast<TService>(service);
                     }
 
                     if constexpr (std::is_base_of_v<IApplication, TService>)
                     {
-                        return std::static_pointer_cast<TService>(
-                            mApplication.lock());
+                        return skr::RefCast<TService>(mApplication);
                     }
 
                     servicesDescriptions.erase(serviceDescription);
 
-                    return std::static_pointer_cast<TService>(
+                    return skr::RefCast<TService>(
                         mSingletonsCache->at(GetServiceId<TService>()));
                 }
                 case LifeTime::Scoped: {
@@ -129,12 +126,12 @@ namespace SKIRNIR_NAMESPACE
                                                       servicesDescriptions);
                         mScopeCache->emplace(GetServiceId<TService>(), service);
 
-                        return std::static_pointer_cast<TService>(service);
+                        return skr::RefCast<TService>(service);
                     }
 
                     servicesDescriptions.erase(serviceDescription);
 
-                    return std::static_pointer_cast<TService>(
+                    return skr::RefCast<TService>(
                         mScopeCache->at(GetServiceId<TService>()));
                 }
                 default: {
@@ -151,7 +148,7 @@ namespace SKIRNIR_NAMESPACE
         Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
         Ref<ServicesCache>           mSingletonsCache;
         Ref<ServicesCache>           mScopeCache;
-        std::weak_ptr<IApplication>  mApplication;
+        Ref<IApplication>            mApplication;
     };
 
 } // namespace SKIRNIR_NAMESPACE

@@ -1,14 +1,13 @@
 #pragma once
 
-#include <any>
-#include <cassert>
 #include <functional>
-#include <memory>
+#include <type_traits>
 
 #include "Common.hpp"
 #include "Reflection.hpp"
 #include "ServiceId.hpp"
 #include "ServiceProvider.hpp"
+#include "Skirnir/Arc.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -76,7 +75,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-        ServiceCollection& AddSingleton(std::shared_ptr<TService> element)
+        ServiceCollection& AddSingleton(Ref<TService> element)
         {
             AddServiceWithInstance<TService, TService>(element,
                                                        LifeTime::Singleton);
@@ -87,7 +86,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename TContract, typename TService>
             requires(not std::is_same_v<TContract, TService> and
                      std::is_base_of_v<TContract, TService>)
-        ServiceCollection& AddSingleton(std::shared_ptr<TService> element)
+        ServiceCollection& AddSingleton(Ref<TService> element)
         {
             AddServiceWithInstance<TContract, TService>(element,
                                                         LifeTime::Singleton);
@@ -297,8 +296,8 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-        void AddServiceWithInstance(std::shared_ptr<TService> instance,
-                                    const LifeTime            lifeTime)
+        void AddServiceWithInstance(Ref<TService>  instance,
+                                    const LifeTime lifeTime)
         {
 
             mServiceDefinitionMap->insert(
