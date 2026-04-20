@@ -19,10 +19,6 @@ theme:
         name: Switch to light mode
 
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_lvl: 1
-  - pymdownx.details
-  - pymdownx.superfences
   - admonition
   - toc:
       permalink: true
