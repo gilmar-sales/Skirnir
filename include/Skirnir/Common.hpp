@@ -26,6 +26,14 @@ namespace SKIRNIR_NAMESPACE
         return std::make_shared<T>(std::forward<TArgs>(args)...);
     }
 
+    /**
+     * @brief Performs a static pointer cast on a shared_ptr.
+     *
+     * @tparam TDest  The target type to cast to
+     * @tparam TSource The source type being cast from
+     * @param source  The shared_ptr to cast
+     * @return        A shared_ptr of type TDest, or nullptr if cast fails
+     */
     template <typename TDest, typename TSource>
     inline Ref<TDest> RefCast(const Ref<TSource>& source)
     {

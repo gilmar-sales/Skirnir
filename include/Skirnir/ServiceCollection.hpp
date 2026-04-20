@@ -25,6 +25,13 @@ namespace SKIRNIR_NAMESPACE
 
         ~ServiceCollection() = default;
 
+        /**
+         * @brief Registers a singleton service with a custom factory.
+         *
+         * @tparam TService The concrete service type to register
+         * @param factory   Custom factory function for creating the service
+         * @return         Reference to this ServiceCollection for chaining
+         */
         template <typename TService>
         ServiceCollection& AddSingleton(const ServiceFactory& factory)
         {
@@ -34,6 +41,14 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Registers a singleton service with a custom factory.
+         *
+         * @tparam TContract The contract/interface type
+         * @tparam TService  The concrete service type
+         * @param factory    Custom factory function for creating the service
+         * @return          Reference to this ServiceCollection for chaining
+         */
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddSingleton(const ServiceFactory& factory)
@@ -93,6 +108,13 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Registers a transient service with a custom factory.
+         *
+         * @tparam TService The concrete service type to register
+         * @param factory   Custom factory function for creating the service
+         * @return         Reference to this ServiceCollection for chaining
+         */
         template <typename TService>
         ServiceCollection& AddTransient(const ServiceFactory& factory)
         {
@@ -152,6 +174,13 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Registers a scoped service with a custom factory.
+         *
+         * @tparam TService The concrete service type to register
+         * @param factory   Custom factory function for creating the service
+         * @return         Reference to this ServiceCollection for chaining
+         */
         template <typename TService>
         ServiceCollection& AddScoped(const ServiceFactory& factory)
         {
@@ -161,6 +190,14 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Registers a scoped service with a contract and custom factory.
+         *
+         * @tparam TContract The contract/interface type
+         * @tparam TService  The concrete service type
+         * @param factory    Custom factory function for creating the service
+         * @return          Reference to this ServiceCollection for chaining
+         */
         template <typename TContract, typename TService>
             requires(std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddScoped(const ServiceFactory& factory)
@@ -209,12 +246,27 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Checks whether a service type is registered.
+         *
+         * @tparam TService The service type to check
+         * @return          True if the service is registered, false otherwise
+         */
         template <typename TService>
         [[nodiscard]] bool Contains() const
         {
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
         }
 
+        /**
+         * @brief Creates a new ServiceProvider from this collection.
+         *
+         * Automatically registers LoggerOptions as a singleton if not already
+         * present. The returned provider can resolve services from this
+         * collection.
+         *
+         * @return A new ServiceProvider instance
+         */
         [[nodiscard]] Ref<skr::ServiceProvider> CreateServiceProvider()
         {
             if (!Contains<LoggerOptions>())

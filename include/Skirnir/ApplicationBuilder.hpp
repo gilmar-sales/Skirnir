@@ -14,11 +14,22 @@ namespace SKIRNIR_NAMESPACE
         {
         }
 
+        /**
+         * @brief Gets the underlying ServiceCollection.
+         *
+         * @return The service collection used by this builder
+         */
         Ref<ServiceCollection> GetServiceCollection()
         {
             return mServiceCollection;
         }
 
+        /**
+         * @brief Adds and configures an extension of the specified type.
+         *
+         * @tparam TExtension The extension type, must derive from IExtension
+         * @return            Reference to this builder for chaining
+         */
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
         ApplicationBuilder& AddExtension()
@@ -26,6 +37,14 @@ namespace SKIRNIR_NAMESPACE
             return AddExtension<TExtension>([](Ref<TExtension>) {});
         }
 
+        /**
+         * @brief Adds and configures an extension with a configuration
+         * function.
+         *
+         * @tparam TExtension The extension type, must derive from IExtension
+         * @param configureExtensionFunc Function to configure the extension
+         * @return                       Reference to this builder for chaining
+         */
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
         ApplicationBuilder& AddExtension(
@@ -42,6 +61,16 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        /**
+         * @brief Builds and returns an application instance.
+         *
+         * Registers the application type as a singleton, creates a
+         * ServiceProvider, runs all extension UseServices hooks, and returns
+         * the resolved application.
+         *
+         * @tparam T The application type, must derive from IApplication
+         * @return   The resolved application instance
+         */
         template <typename T>
             requires(std::is_base_of_v<IApplication, T>)
         Ref<T> Build()

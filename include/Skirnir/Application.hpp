@@ -15,6 +15,11 @@ namespace SKIRNIR_NAMESPACE
 
         virtual ~IApplication() = default;
 
+        /**
+         * @brief Gets the root ServiceProvider.
+         *
+         * @return The root service provider instance
+         */
         Ref<ServiceProvider> GetRootServiceProvider() const
         {
             return mRootServiceProvider;

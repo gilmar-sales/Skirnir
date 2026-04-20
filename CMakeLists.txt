@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.28)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
-project(Skirnir LANGUAGES CXX VERSION 0.15.3)
+project(Skirnir LANGUAGES CXX VERSION 0.16.0)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -11,28 +11,28 @@ option(SKIRNIR_USE_FMT OFF CACHE)
 
 if (NOT TARGET skirnir)
 
-    include(FetchContent)
+  include(FetchContent)
 
-    add_library(skirnir
+  add_library(skirnir
             src/ServiceScope.cpp
             src/ServiceProvider.cpp)
 
-    add_library(skirnir::skirnir ALIAS skirnir)
+  add_library(skirnir::skirnir ALIAS skirnir)
 
-    if (${SKIRNIR_USE_FMT})
-        target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)
+  if (${SKIRNIR_USE_FMT})
+    target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)
 
-        FetchContent_Declare(
+    FetchContent_Declare(
                 fmt
                 GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
                 GIT_TAG "12.1.0"
         )
-        FetchContent_MakeAvailable(fmt)
+    FetchContent_MakeAvailable(fmt)
 
-        target_link_libraries(skirnir fmt::fmt)
-    elseif (CMAKE_COMPILER_IS_GNUCXX)
-        target_link_libraries(skirnir stdc++exp)
-    endif ()
+    target_link_libraries(skirnir fmt::fmt)
+  elseif (CMAKE_COMPILER_IS_GNUCXX)
+    target_link_libraries(skirnir stdc++exp)
+  endif ()
 endif ()
 
 target_include_directories(skirnir PUBLIC include)
@@ -47,14 +47,14 @@ option(BUILD_SKIRNIR_EXAMPLES OFF CACHE)
 option(BUILD_SKIRNIR_TESTS OFF CACHE)
 
 if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
-    set(BUILD_SKIRNIR_EXAMPLES ON)
-    set(BUILD_SKIRNIR_TESTS ON)
+  set(BUILD_SKIRNIR_EXAMPLES ON)
+  set(BUILD_SKIRNIR_TESTS ON)
 endif ()
 
 if (${BUILD_SKIRNIR_EXAMPLES})
-    add_subdirectory(examples)
+  add_subdirectory(examples)
 endif ()
 
 if (${BUILD_SKIRNIR_TESTS})
-    add_subdirectory(test)
+  add_subdirectory(test)
 endif ()
