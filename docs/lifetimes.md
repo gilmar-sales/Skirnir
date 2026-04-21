@@ -1,6 +1,6 @@
 # Lifetimes
 
-Skirnir supports three service lifetimes, inspired by **the** Microsoft.Extensions.DependencyInjection:
+Skirnir supports three service lifetimes, inspired by Microsoft.Extensions.DependencyInjection:
 
 | Lifetime  | Description                                                                                              |
 |-----------|----------------------------------------------------------------------------------------------------------|

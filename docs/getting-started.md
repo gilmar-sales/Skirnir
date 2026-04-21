@@ -4,7 +4,7 @@
 
 - C++20 or later compiler
 - CMake 3.16 or later
-- Optional: **the** fmt library for enhanced logging (enable with `SKIRNIR_USE_FMT`)
+- Optional: fmt library for enhanced logging (enable with `SKIRNIR_USE_FMT`)
 
 ## Building
 

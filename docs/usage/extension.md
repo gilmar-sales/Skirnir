@@ -46,6 +46,12 @@ public:
         mBuilder = &applicationBuilder;
     }
 
+    void UseServices(Ref<skr::ServiceProvider> serviceProvider) override
+    {
+        auto router = serviceProvider->GetService<IRouter>();
+        mBuilder->GetServiceCollection()->AddSingleton(std::move(router));
+    }
+
 private:
     skr::ApplicationBuilder* mBuilder = nullptr;
 };
@@ -76,11 +82,15 @@ skr::ApplicationBuilder()
 
 ## Extension Ordering
 
-Extensions are executed in the order they are added:
+Extensions are executed in the order they are added. Each lifecycle method is called sequentially:
 
-1. All `Attach` methods are called in order
-2. All `ConfigureServices` methods are called in order
-3. All `UseServices` methods are called in order after the provider is built
+1. All `Attach` methods are called in the order extensions were added
+2. All `ConfigureServices` methods are called in the order extensions were added
+3. All `UseServices` methods are called in the order extensions were added
+
+If an extension's `UseServices` throws, subsequent extensions' `UseServices` methods are **not** called.
+
+The `IApplication` singleton is registered automatically during `ApplicationBuilder::Build`, after all extensions' `ConfigureServices` have run but before any `UseServices` is called.
 
 ## Use Cases
 

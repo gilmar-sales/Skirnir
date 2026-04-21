@@ -16,7 +16,7 @@ template <typename T, typename... TArgs>
 Ref<T> MakeRef(TArgs&&... args);
 ```
 
-### LifeTime
+### Lifetime
 
 Enum specifying a service lifetime:
 

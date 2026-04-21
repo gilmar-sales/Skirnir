@@ -8,7 +8,7 @@ Skirnir provides an IoC (Inversion of Control) Container for dependency injectio
 - **Multiple Lifetimes**: Support for Singleton, Scoped, and Transient lifetimes
 - **Circular Dependency Detection**: Detects and reports circular dependencies
 - **Logging**: Built-in logging support with `skr::Logger<T>`
-- **Reflection**: Uses compile-time reflection to extract service metadata
+- **Reflection**: Uses compile-time type introspection via the C++ Type Loophole to extract service metadata
 - **Applications**: Structured application model with `IApplication` and `ApplicationBuilder`
 - **Extensions**: Modular service registration via composable extensions
 
