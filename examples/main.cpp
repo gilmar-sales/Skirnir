@@ -97,11 +97,11 @@ class ExampleApp : public skr::IApplication
 
 class ExampleExtension final : public skr::IExtension
 {
-  public:
-    void ConfigureServices(Ref<skr::ServiceCollection> services) override
+  protected:
+    void ConfigureServices(skr::ServiceCollection& services) override
     {
         services
-            ->AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
+            .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
                 auto options      = skr::MakeRef<skr::LoggerOptions>();
                 options->logLevel = skr::LogLevel::Information;
                 return options;
@@ -116,7 +116,7 @@ int main()
     auto appBuilder =
         skr::ApplicationBuilder()
             .AddExtension<ExampleExtension>(
-                [](Ref<ExampleExtension> exampleExtension) {
+                [](ExampleExtension& exampleExtension) {
 
                 })
             .AddExtension<ExampleExtension>();

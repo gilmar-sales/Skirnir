@@ -14,23 +14,37 @@ class TransientService
 {
 };
 
+class SimpleApp : public skr::IApplication
+{
+  public:
+    explicit SimpleApp(const Ref<skr::ServiceProvider>& rootServiceProvider) :
+        IApplication(rootServiceProvider)
+    {
+    }
+
+    void Run() override {}
+};
+
 class ServiceProviderSpec : public ::testing::Test
 {
   protected:
     void SetUp() override
     {
-        auto serviceCollection =
-            skr::ServiceCollection()
-                .AddSingleton<SingletonService>()
-                .AddScoped<ScopedService>()
-                .AddTransient<TransientService>();
+        auto builder = skr::ApplicationBuilder();
+        builder.GetServiceCollection()
+            ->AddSingleton<SingletonService>()
+            .AddScoped<ScopedService>()
+            .AddTransient<TransientService>();
 
-        mServiceProvider = serviceCollection.CreateServiceProvider();
+        mApp = builder.Build<SimpleApp>();
+
+        mServiceProvider = mApp->GetRootServiceProvider();
     }
 
     void TearDown() override { mServiceProvider.reset(); }
 
     Ref<skr::ServiceProvider> mServiceProvider;
+    Ref<SimpleApp>            mApp;
 };
 
 TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSingleton)
@@ -81,11 +95,14 @@ TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
 {
     // Arrange
-    std::weak_ptr service = mServiceProvider;
+    WeakRef app     = mApp;
+    WeakRef service = mServiceProvider;
 
     // Act
     mServiceProvider.reset();
+    mApp.reset();
 
     // Assert
+    ASSERT_TRUE(app.expired());
     ASSERT_TRUE(service.expired());
 }

@@ -350,7 +350,6 @@ namespace SKIRNIR_NAMESPACE
         void AddServiceWithInstance(Ref<TService>  instance,
                                     const LifeTime lifeTime)
         {
-
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
                   { .factory =

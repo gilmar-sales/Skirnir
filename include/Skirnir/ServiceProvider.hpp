@@ -146,7 +146,7 @@ namespace SKIRNIR_NAMESPACE
 
                     if constexpr (std::is_base_of_v<IApplication, TService>)
                     {
-                        return skr::RefCast<TService>(mApplication);
+                        return skr::RefCast<TService>(mApplication.lock());
                     }
 
                     servicesDescriptions.erase(serviceDescription);
@@ -193,7 +193,7 @@ namespace SKIRNIR_NAMESPACE
         Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
         Ref<ServicesCache>           mSingletonsCache;
         Ref<ServicesCache>           mScopeCache;
-        Ref<IApplication>            mApplication;
+        WeakRef<IApplication>  mApplication;
     };
 
 } // namespace SKIRNIR_NAMESPACE

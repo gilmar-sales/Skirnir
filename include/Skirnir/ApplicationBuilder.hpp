@@ -4,6 +4,8 @@
 #include "Extension.hpp"
 #include "Skirnir/Common.hpp"
 
+#include <ranges>
+
 namespace SKIRNIR_NAMESPACE
 {
 
@@ -32,9 +34,9 @@ namespace SKIRNIR_NAMESPACE
          */
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        ApplicationBuilder& AddExtension()
+        ApplicationBuilder& WithExtension()
         {
-            return AddExtension<TExtension>([](Ref<TExtension>) {});
+            return WithExtension<TExtension>([](TExtension&) {});
         }
 
         /**
@@ -47,16 +49,14 @@ namespace SKIRNIR_NAMESPACE
          */
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        ApplicationBuilder& AddExtension(
-            std::function<void(Ref<TExtension>)> configureExtensionFunc)
+        ApplicationBuilder& WithExtension(
+            std::function<void(TExtension&)> configureExtensionFunc)
         {
             auto extension = GetOrCreateExtension<TExtension>();
 
-            configureExtensionFunc(extension);
-
             extension->Attach(*this);
 
-            extension->ConfigureServices(mServiceCollection);
+            configureExtensionFunc(*skr::RefCast<TExtension>(extension));
 
             return *this;
         }
@@ -75,13 +75,17 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_base_of_v<IApplication, T>)
         Ref<T> Build()
         {
+            for (const auto extension : mExtensions | std::views::values)
+                extension->ConfigureServices(*mServiceCollection);
+
             mServiceCollection->AddSingleton<T>();
 
-            auto serviceProvider = mServiceCollection->CreateServiceProvider();
+            const auto serviceProvider =
+                mServiceCollection->CreateServiceProvider();
 
-            for (auto& [_, extension] : mExtensions)
+            for (const auto& extension : mExtensions | std::views::values)
             {
-                extension->UseServices(serviceProvider);
+                extension->UseServices(*serviceProvider);
             }
 
             auto app = serviceProvider->GetService<T>();
@@ -92,7 +96,7 @@ namespace SKIRNIR_NAMESPACE
       private:
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        Ref<TExtension> GetOrCreateExtension()
+        Ref<IExtension> GetOrCreateExtension()
         {
             if (auto it = mExtensions.find(GetExtensionId<TExtension>());
                 it != mExtensions.end())
