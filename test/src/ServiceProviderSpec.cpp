@@ -95,8 +95,8 @@ TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
 {
     // Arrange
-    WeakRef app     = mApp;
-    WeakRef service = mServiceProvider;
+    WeakRef<SimpleApp> app     = mApp;
+    WeakRef<skr::ServiceProvider> service = mServiceProvider;
 
     // Act
     mServiceProvider.reset();
