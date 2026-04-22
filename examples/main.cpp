@@ -115,11 +115,11 @@ int main()
 {
     auto appBuilder =
         skr::ApplicationBuilder()
-            .AddExtension<ExampleExtension>(
+            .WithExtension<ExampleExtension>(
                 [](ExampleExtension& exampleExtension) {
 
                 })
-            .AddExtension<ExampleExtension>();
+            .WithExtension<ExampleExtension>();
 
     appBuilder.Build<ExampleApp>()->Run();
 
