@@ -4,6 +4,7 @@
 #include "Extension.hpp"
 #include "Skirnir/Common.hpp"
 
+#include <map>
 #include <ranges>
 
 namespace SKIRNIR_NAMESPACE
