@@ -20,6 +20,6 @@ TEST_F(ReflectionSpec, ReflectionShouldGetCorrectTypeName)
 
 TEST_F(ReflectionSpec, ReflectionShouldGetCorrectConstructorArgs)
 {
-    static_assert(std::is_same_v<refl::as_tuple<SingletonService>, std::tuple<int>>);
-    ASSERT_TRUE((std::is_same_v<refl::as_tuple<SingletonService>, std::tuple<int>>) );
+    static_assert(std::is_same_v<refl::first_ctor_params_tuple<SingletonService>, std::tuple<int>>);
+    ASSERT_TRUE((std::is_same_v<refl::first_ctor_params_tuple<SingletonService>, std::tuple<int>>) );
 }
