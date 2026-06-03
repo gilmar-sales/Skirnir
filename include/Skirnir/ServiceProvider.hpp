@@ -93,14 +93,14 @@ namespace SKIRNIR_NAMESPACE
 
             auto serviceDescription =
                 ServiceDescription { .id   = GetServiceId<TService>(),
-                                     .name = type_name<TService>() };
+                                     .name = refl::type_name<TService>() };
 
             if (servicesDescriptions.contains(serviceDescription) &&
                 !mSingletonsCache->contains(GetServiceId<TService>()))
             {
                 mLogger->LogFatal("Circular dependency detected between "
                                   "services: '{}' and '{}'",
-                                  type_name<TService>(),
+                                  refl::type_name<TService>(),
                                   servicesDescriptions.rbegin()->name);
             }
 
@@ -108,7 +108,7 @@ namespace SKIRNIR_NAMESPACE
 
             mLogger->Assert(Contains<TService>(),
                             "Unable get unregistered service: '{}'",
-                            type_name<TService>());
+                            refl::type_name<TService>());
 
             switch (const auto& serviceDefinition =
                         mServiceDefinitionMap->at(GetServiceId<TService>());
@@ -160,7 +160,7 @@ namespace SKIRNIR_NAMESPACE
                         mIsScoped,
                         "Unable to get 'Scoped' {} service into Root Service "
                         "Provider. Create an scope first.",
-                        type_name<TService>());
+                        refl::type_name<TService>());
 
                     const auto it = mScopeCache->find(GetServiceId<TService>());
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 
 project(SkirnirTest LANGUAGES C CXX VERSION 0.15.2)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 
 FetchContent_Declare(
         gtest

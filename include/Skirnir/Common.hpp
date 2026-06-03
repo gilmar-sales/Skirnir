@@ -58,8 +58,8 @@ namespace SKIRNIR_NAMESPACE
 
     struct ServiceDescription
     {
-        ServiceId id;
-        char*     name;
+        ServiceId        id;
+        std::string_view name;
 
         bool operator<(const ServiceDescription& other) const
         {

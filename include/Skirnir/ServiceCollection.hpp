@@ -332,7 +332,7 @@ namespace SKIRNIR_NAMESPACE
                                 servicesDescriptions) {
                             servicesDescriptions.erase(ServiceDescription {
                                 .id   = GetServiceId<TContract>(),
-                                .name = type_name<TContract>() });
+                                .name = refl::type_name<TContract>() });
 
                             return newFactory(serviceProvider);
                         },
@@ -358,7 +358,7 @@ namespace SKIRNIR_NAMESPACE
                                                   servicesDescriptions) {
                             servicesDescriptions.erase(ServiceDescription {
                                 .id   = GetServiceId<TContract>(),
-                                .name = type_name<TContract>() });
+                                .name = refl::type_name<TContract>() });
 
                             return instance;
                         },
@@ -381,7 +381,7 @@ namespace SKIRNIR_NAMESPACE
                    std::set<ServiceDescription>& servicesDescriptions) {
                     servicesDescriptions.erase(ServiceDescription {
                         .id   = GetServiceId<TService>(),
-                        .name = type_name<TService>() });
+                        .name = refl::type_name<TService>() });
 
                     return MakeRef<TService>(
                         serviceProvider.GetServiceImpl<std::remove_pointer_t<

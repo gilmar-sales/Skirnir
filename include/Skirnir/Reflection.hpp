@@ -11,6 +11,13 @@
 #include <tuple>
 #include <utility>
 
+#if defined(__cpp_impl_reflection)
+    #include <meta>
+    #include <ranges>
+    #include <vector>
+
+#endif
+
 // Based on
 // * http://alexpolt.github.io/type-loophole.html
 //   https://github.com/alexpolt/luple/blob/master/type-loophole.h
@@ -18,13 +25,43 @@
 // * https://www.youtube.com/watch?v=UlNUNxLtBI0
 //   Better C++14 reflections - Antony Polukhin - Meeting C++ 2018
 
-namespace refl
+#if defined(__cpp_impl_reflection)
+
+namespace detail
+{
+    template <typename T>
+    constexpr std::string_view type_name()
+    {
+        return std::meta::display_string_of(^^T);
+    }
+
+    template <typename T>
+    consteval std::meta::info first_ctor_params()
+    {
+        auto ctors =
+            std::meta::members_of(^^T, std::meta::access_context::current()) |
+            std::views::filter(std::meta::is_constructor);
+
+        auto params = std::meta::parameters_of((*ctors.begin()));
+        return std::meta::substitute(
+            ^^std::tuple,
+            params | std::views::transform(std::meta::type_of) |
+                std::views::transform(std::meta::remove_cvref));
+    }
+
+    template <typename T>
+    using as_tuple = typename std::remove_cv_t<typename[:first_ctor_params<T>():]>;
+} // namespace detail
+#else
+
+namespace detail
 {
 
     // tag<T, N> generates friend declarations and helps with overload
-    // resolution. There are two types: one with the auto return type, which is
-    // the way we read types later. The second one is used in the detection of
-    // instantiations without which we'd get multiple definitions.
+    // resolution. There are two types: one with the auto return type, which
+    // is the way we read types later. The second one is used in the
+    // detection of instantiations without which we'd get multiple
+    // definitions.
     template <typename T, int N>
     struct tag
     {
@@ -50,10 +87,10 @@ namespace refl
     };
 
     // This has a templated conversion operator which in turn triggers
-    // instantiations. Important point, using sizeof seems to be more reliable.
-    // Also default template arguments are "cached" (I think). To fix that I
-    // provide a U template parameter to the ins functions which do the
-    // detection using constexpr friend functions and SFINAE.
+    // instantiations. Important point, using sizeof seems to be more
+    // reliable. Also default template arguments are "cached" (I think). To
+    // fix that I provide a U template parameter to the ins functions which
+    // do the detection using constexpr friend functions and SFINAE.
     template <typename T, int N>
     struct c_op
     {
@@ -70,8 +107,8 @@ namespace refl
 
     // Here we detect the data type field number. The byproduct is
     // instantiations. Uses list initialization. Won't work for types with
-    // user-provided constructors. In C++17 there is std::is_aggregate which can
-    // be added later.
+    // user-provided constructors. In C++17 there is std::is_aggregate which
+    // can be added later.
     template <typename T, int... Ns>
     constexpr int fields_number(...)
     {
@@ -111,9 +148,53 @@ namespace refl
     };
 
     template <typename T>
-    using as_tuple = typename loophole_tuple<
-        T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
+    constexpr char* type_name()
+    {
+    #if defined(__clang__)
+        // __PRETTY_FUNCTION__ on Clang/GCC looks like:
+        //   std::string type_name() [with T = MyNamespace::MyType]
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end    = pretty.rfind(']');
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+    #elif defined(__GNUC__)
+        // __PRETTY_FUNCTION__ on Clang/GCC looks like:
+        //   std::string type_name() [with T = MyNamespace::MyType]
+        static std::string pretty = __PRETTY_FUNCTION__;
+        static auto        start  = pretty.find("T = ") + 4;
+        static auto        end = std::min(pretty.rfind(']'), pretty.rfind(';'));
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+    #elif defined(_MSC_VER)
+        // __FUNCSIG__ on MSVC looks like:
+        //   std::string __cdecl type_name<TYPE>(void)
+        static std::string pretty = __FUNCSIG__;
+        static auto        start  = pretty.find("type_name<") + 16;
+        static auto        end    = pretty.rfind(">(void)");
+        static auto        result = pretty.substr(start, end - start);
+        return result.data();
+    #else
+        return "Unknown Compiler";
+    #endif
+    }
 
+    template <typename T>
+    using as_tuple = typename detail::loophole::loophole_tuple<
+        T, std::make_integer_sequence<int, fields_number_ctor<T>(0)>>::type;
+} // namespace detail
+#endif
+
+namespace refl
+{
+    template <typename T>
+    using as_tuple = typename detail::as_tuple<T>;
+
+    template <typename T>
+    constexpr std::string_view type_name()
+    {
+        return detail::type_name<T>();
+    }
 } // namespace refl
 
 #ifdef __GNUC__

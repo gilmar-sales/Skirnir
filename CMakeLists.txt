@@ -5,7 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(Skirnir LANGUAGES CXX VERSION 0.16.1)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 
 option(SKIRNIR_USE_FMT OFF CACHE)
 
@@ -36,6 +36,12 @@ if (NOT TARGET skirnir)
 endif ()
 
 target_include_directories(skirnir PUBLIC include)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(skirnir PUBLIC -freflection)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(skirnir PUBLIC /experimental:reflection)
+endif ()
 
 install(TARGETS skirnir)
 
