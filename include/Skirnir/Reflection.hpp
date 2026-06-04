@@ -14,15 +14,22 @@ namespace refl
         {
             return std::meta::display_string_of(^^T);
         }
+
         template <typename T>
-        consteval auto first_ctor_params()
+        consteval auto first_ctor()
         {
             auto ctors =
                 std::meta::members_of(^^T,
                                       std::meta::access_context::current()) |
                 std::views::filter(std::meta::is_constructor);
 
-            return std::meta::parameters_of((*ctors.begin()));
+            return *ctors.begin();
+        }
+
+        template <typename T>
+        consteval auto first_ctor_params()
+        {
+            return std::meta::parameters_of(first_ctor<T>());
         }
 
         template <typename T>
@@ -48,6 +55,12 @@ namespace refl
     constexpr std::string_view type_name()
     {
         return _detail::type_name<T>();
+    }
+
+    template <typename T>
+    consteval auto first_ctor_params()
+    {
+        return _detail::first_ctor_params<T>();
     }
 } // namespace refl
 
