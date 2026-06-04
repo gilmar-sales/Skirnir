@@ -95,7 +95,7 @@ TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
 {
     // Arrange
-    WeakRef<SimpleApp> app     = mApp;
+    WeakRef<SimpleApp>            app     = mApp;
     WeakRef<skr::ServiceProvider> service = mServiceProvider;
 
     // Act
@@ -105,4 +105,47 @@ TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
     // Assert
     ASSERT_TRUE(app.expired());
     ASSERT_TRUE(service.expired());
+}
+
+class NonExistentService
+{
+};
+
+class MissingDep
+{
+  public:
+    explicit MissingDep(Ref<NonExistentService>) {}
+};
+
+TEST_F(ServiceProviderSpec, ValidateOnBuildSucceedsForWellFormedGraph)
+{
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<SingletonService>()
+                  .CreateServiceProvider();
+    EXPECT_NO_THROW(sp->ValidateOnBuild());
+}
+
+TEST_F(ServiceProviderSpec, ValidateOnBuildFailsForMissingDependency)
+{
+    // MissingDep requires NonExistentService, which we deliberately do not
+    // register below.
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<MissingDep>()
+                  .CreateServiceProvider();
+    EXPECT_THROW(sp->ValidateOnBuild(), std::runtime_error);
+}
+
+TEST_F(ServiceProviderSpec, PrintDiagnosticsContainsExpectedText)
+{
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<SingletonService>()
+                  .AddTransient<TransientService>()
+                  .CreateServiceProvider();
+
+    std::ostringstream oss;
+    sp->PrintDiagnostics(oss);
+    auto output = oss.str();
+    EXPECT_NE(output.find("Singleton"), std::string::npos);
+    EXPECT_NE(output.find("Transient"), std::string::npos);
+    EXPECT_NE(output.find("service#"), std::string::npos);
 }

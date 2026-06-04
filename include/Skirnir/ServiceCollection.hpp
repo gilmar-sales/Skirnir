@@ -71,6 +71,16 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
+        ServiceCollection& AddSingleton()
+        {
+            AddService<TContract, TService>(LifeTime::Singleton);
+            return *this;
+        }
+
         template <typename TService>
             requires(
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
@@ -383,7 +393,6 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_constructible_v<TService, Args...>)
         InternalServiceFactory CreateServiceFactory(std::tuple<Args...>)
         {
-
             return [](ServiceProvider&              serviceProvider,
                       std::set<ServiceDescription>& servicesDescriptions) {
                 servicesDescriptions.erase(ServiceDescription {
@@ -391,9 +400,7 @@ namespace SKIRNIR_NAMESPACE
                     .name = refl::type_name<TService>() });
 
                 return MakeRef<TService>(
-                    serviceProvider
-                        .GetServiceImpl<refl::first_template_arg_of<Args>>(
-                            servicesDescriptions)...);
+                    Resolve<Args>(serviceProvider, servicesDescriptions)...);
             };
         }
 

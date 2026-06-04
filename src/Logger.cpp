@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <stdexcept>
+#include <string>
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -33,74 +35,32 @@ namespace SKIRNIR_NAMESPACE
         if (!config)
             return;
 
-        // Load default log level
-        if (auto levelValue = config->GetValue(path); levelValue)
+        // Default log level
+        if (auto level = config->GetString(path); !level.empty())
         {
-            logLevel = ParseLogLevel(*levelValue);
+            logLevel = ParseLogLevel(level);
         }
 
-        // Load namespace-specific log levels
-        // Look for pattern: logging.namespaces.{namespace}.level
-        if (auto namespacesValue = config->GetValue("logging.logLevel");
-            namespacesValue)
-        {
-            // Parse the namespaces JSON object
-            std::string_view nsJson = *namespacesValue;
-            size_t           pos    = 0;
+        // Namespace-specific levels live in the same object that holds the
+        // default key, so locate the parent section and iterate its members.
+        auto dot = path.rfind('.');
+        if (dot == std::string_view::npos)
+            return;
 
-            while (pos < nsJson.size())
-            {
-                // Find a key
-                size_t keyStart = nsJson.find('"', pos);
-                if (keyStart == std::string_view::npos)
-                    break;
+        std::string_view sectionPath = path.substr(0, dot);
+        std::string_view defaultKey  = path.substr(dot + 1);
 
-                size_t keyEnd = nsJson.find('"', keyStart + 1);
-                if (keyEnd == std::string_view::npos)
-                    break;
-
-                std::string_view namespaceName =
-                    nsJson.substr(keyStart + 1, keyEnd - keyStart - 1);
-
-                // Find the value
-                size_t colonPos = nsJson.find(':', keyEnd);
-                if (colonPos == std::string_view::npos)
-                    break;
-
-                size_t valueStart = colonPos + 1;
-                while (
-                    valueStart < nsJson.size() &&
-                    (nsJson[valueStart] == ' ' || nsJson[valueStart] == '\t'))
-                {
-                    valueStart++;
-                }
-
-                if (valueStart >= nsJson.size())
-                    break;
-
-                if (nsJson[valueStart] == '"')
-                {
-                    size_t valueEnd = nsJson.find('"', valueStart + 1);
-                    if (valueEnd != std::string_view::npos)
-                    {
-                        std::string_view levelStr =
-                            nsJson.substr(valueStart + 1,
-                                          valueEnd - valueStart - 1);
-                        mLogLevels[std::string(namespaceName)] =
-                            ParseLogLevel(levelStr);
-                        pos = valueEnd + 1;
-                    }
-                    else
-                    {
-                        pos = keyEnd + 1;
-                    }
-                }
-                else
-                {
-                    pos = keyEnd + 1;
-                }
-            }
-        }
+        config->ForEachMember(
+            sectionPath,
+            [&](std::string_view key, simdjson::dom::element value) {
+                if (key == defaultKey)
+                    return;
+                if (!value.is_string())
+                    return;
+                std::string_view sv;
+                if (value.get_string().get(sv) != simdjson::SUCCESS)
+                    return;
+                mLogLevels[std::string(key)] = ParseLogLevel(sv);
+            });
     }
-
 } // namespace SKIRNIR_NAMESPACE

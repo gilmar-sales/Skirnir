@@ -88,7 +88,46 @@ namespace SKIRNIR_NAMESPACE
         LifeTime lifetime = LifeTime::Transient;
     };
 
-    using ServiceDefinitionMap = std::map<ServiceId, ServiceDefinition>;
+    using ServiceDefinitionMap = std::multimap<ServiceId, ServiceDefinition>;
     using ServicesCache        = std::map<ServiceId, Ref<void>>;
+
+    /**
+     * @brief Detects whether @c T is @c std::vector<Ref<U>> for some U.
+     */
+    template <typename T>
+    struct is_vector_of_ref : std::false_type
+    {
+    };
+
+    template <typename U, typename Alloc>
+    struct is_vector_of_ref<std::vector<Ref<U>, Alloc>> : std::true_type
+    {
+    };
+
+    template <typename T>
+    inline constexpr bool is_vector_of_ref_v = is_vector_of_ref<T>::value;
+
+    /**
+     * @brief Resolves a constructor parameter from the ServiceProvider.
+     *
+     * - If @c Arg is @c std::vector<Ref<U>>, returns all services registered
+     *   for @c U via @c GetServices.
+     * - Otherwise, treats @c Arg as @c Ref<U> and returns a single service
+     *   via @c GetServiceImpl.
+     */
+    template <typename Arg, typename ServiceProviderT>
+    auto Resolve(ServiceProviderT& sp, std::set<ServiceDescription>& desc)
+    {
+        if constexpr (is_vector_of_ref_v<Arg>)
+        {
+            using U = typename Arg::value_type::element_type;
+            return sp.template GetServices<U>();
+        }
+        else
+        {
+            using U = typename Arg::element_type;
+            return sp.template GetServiceImpl<U>(desc);
+        }
+    }
 
 } // namespace SKIRNIR_NAMESPACE

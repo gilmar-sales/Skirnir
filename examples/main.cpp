@@ -115,10 +115,10 @@ namespace example
 // JSON configuration string for demonstration
 const char* kConfigJson = R"({
     "logging": {
-        "level": "Warning",
-        "namespaces": {
+        "logLevel": {
+            "default": "Warning",
             "example": "Debug",
-            "example::ExampleApp": "Fatal",
+            "example::ExampleApp": "Fatal"
         }
     }
 })";

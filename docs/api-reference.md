@@ -20,11 +20,11 @@ Ref<T> MakeRef(TArgs&&... args);
 
 Enum specifying a service lifetime:
 
-| Value      | Description                                      |
-|------------|--------------------------------------------------|
-| Transient  | New instance each request                        |
-| Scoped     | One instance per scope                          |
-| Singleton  | Single instance per application                  |
+| Value     | Description                     |
+| --------- | ------------------------------- |
+| Transient | New instance each request       |
+| Scoped    | One instance per scope          |
+| Singleton | Single instance per application |
 
 ### ServiceFactory
 
@@ -87,6 +87,16 @@ Ref<ServiceProvider> CreateServiceProvider();
 ```cpp
 template <typename TService>
 Ref<TService> GetService();
+
+template <typename TService>
+std::vector<Ref<TService>> GetServices();
+```
+
+### Validation and Diagnostics
+
+```cpp
+void ValidateOnBuild();
+void PrintDiagnostics(std::ostream& os) const;
 ```
 
 ### Utility Methods
@@ -121,14 +131,14 @@ Ref<ServiceProvider> GetServiceProvider() const;
 
 ### Log Levels
 
-| Level       | Description                          |
-|-------------|--------------------------------------|
-| Debug       | Debug messages (default in debug)    |
+| Level       | Description                         |
+| ----------- | ----------------------------------- |
+| Debug       | Debug messages (default in debug)   |
 | Trace       | Trace messages (default in release) |
 | Information | General information messages        |
-| Warning     | Warning messages                     |
-| Error       | Error messages                       |
-| Fatal       | Fatal errors (throws exception)      |
+| Warning     | Warning messages                    |
+| Error       | Error messages                      |
+| Fatal       | Fatal errors (throws exception)     |
 
 ### Logging Methods
 
@@ -164,10 +174,58 @@ Configuration class for logging behavior:
 ```cpp
 class LoggerOptions {
     LogLevel logLevel;  // Default: Debug (debug build), Trace (release)
+    void ConfigureFrom(Ref<ConfigurationOptions> config,
+                       std::string_view path = "logging.logLevel.default");
 };
 ```
 
 Inject `Ref<LoggerOptions>` to customize logging level.
+
+---
+
+## Configuration
+
+### ConfigurationBuilder
+
+```cpp
+ConfigurationBuilder& AddJsonFile(const std::filesystem::path& path);
+ConfigurationBuilder& AddJsonString(std::string_view json);
+ConfigurationBuilder& AddSource(Ref<IConfigurationSource> source);
+ConfigurationBuilder& AddInMemory(
+    std::initializer_list<std::pair<std::string, std::string>> entries);
+
+Ref<ConfigurationOptions> Build();
+```
+
+### ConfigurationOptions
+
+```cpp
+std::optional<std::string> GetValue(std::string_view key) const;
+bool                       HasKey(std::string_view key) const;
+
+bool        GetBool(std::string_view key, bool defaultValue = false) const;
+int64_t     GetInt(std::string_view key, int64_t defaultValue = 0) const;
+double      GetDouble(std::string_view key, double defaultValue = 0.0) const;
+std::string GetString(std::string_view key, std::string_view defaultValue = "") const;
+std::vector<std::string> GetArray(std::string_view key) const;
+
+Ref<ConfigurationOptions> GetSection(std::string_view key) const;
+
+template <typename T>
+T Bind(std::string_view section = "") const;
+```
+
+### IConfigurationSource
+
+Abstract base class for custom configuration sources. Override `Load()` to
+produce a `simdjson::dom::element` representing the root of your data.
+
+### JsonObjectReader
+
+```cpp
+bool Contains(std::string_view key) const;
+template <typename T> bool TryGet(std::string_view key, T& out) const;
+```
 
 ---
 

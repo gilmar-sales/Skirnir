@@ -7,7 +7,8 @@ project(Skirnir LANGUAGES CXX VERSION 0.16.1)
 
 set(CMAKE_CXX_STANDARD 26)
 
-option(SKIRNIR_USE_FMT OFF CACHE)
+option(SKIRNIR_USE_FMT "Use the fmt library for logging" OFF)
+option(SKIRNIR_USE_SIMDJSON "Use simdjson for configuration parsing" ON)
 
 if (NOT TARGET skirnir)
 
@@ -20,6 +21,26 @@ if (NOT TARGET skirnir)
             src/ServiceProvider.cpp)
 
   add_library(skirnir::skirnir ALIAS skirnir)
+
+  if (${SKIRNIR_USE_SIMDJSON})
+    target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_SIMDJSON)
+
+    FetchContent_Declare(
+                simdjson
+                GIT_REPOSITORY "https://github.com/simdjson/simdjson.git"
+                GIT_TAG "v4.6.4"
+                GIT_SHALLOW TRUE
+        )
+    set(SIMDJSON_DEVELOPER_MODE OFF CACHE BOOL "" FORCE)
+    set(SIMDJSON_BUILD_STATIC_LIB OFF CACHE BOOL "" FORCE)
+    set(SIMDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SIMDJSON_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(SIMDJSON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(simdjson)
+
+    target_link_libraries(skirnir simdjson::simdjson)
+    target_include_directories(skirnir PRIVATE ${simdjson_SOURCE_DIR}/include)
+  endif ()
 
   if (${SKIRNIR_USE_FMT})
     target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)

@@ -6,6 +6,9 @@ Skirnir provides an IoC (Inversion of Control) Container for dependency injectio
 
 - **Automatic Dependency Injection**: Automatically resolves constructor dependencies
 - **Multiple Lifetimes**: Support for Singleton, Scoped, and Transient lifetimes
+- **Multi-Registration**: Register and resolve multiple implementations of a contract with `GetServices<T>()` or `std::vector<Ref<T>>` injection
+- **Configuration**: Strongly-typed JSON configuration with `Bind<T>()`, typed getters, sub-sections, and source chaining
+- **Diagnostics**: `ValidateOnBuild()` and `PrintDiagnostics(std::ostream&)` for early failure detection
 - **Circular Dependency Detection**: Detects and reports circular dependencies
 - **Logging**: Built-in logging support with `skr::Logger<T>`
 - **Reflection**: Uses compile-time type introspection via the C++ Type Loophole to extract service metadata

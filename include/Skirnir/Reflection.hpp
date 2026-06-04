@@ -56,6 +56,47 @@ namespace refl
     template <typename T>
     using first_template_arg_of =
         typename[:std::meta::template_arguments_of(^^T)[0]:];
+
+    template <typename T>
+    inline constexpr auto nonstatic_members_v =
+        std::meta::nonstatic_data_members_of(
+            ^^T, std::meta::access_context::current());
+
+    template <typename T>
+    inline constexpr auto nonstatic_member_names_v = []() consteval {
+        std::vector<std::string_view> names;
+        for (auto member : nonstatic_members_v<T>)
+        {
+            names.push_back(std::meta::display_string_of(member));
+        }
+        return names;
+    }();
+
+    template <typename T>
+    consteval std::vector<std::string_view> nonstatic_member_names()
+    {
+        return nonstatic_member_names_v<T>;
+    }
+
+    namespace detail
+    {
+        template <typename T, typename Fn, std::size_t... Is>
+        constexpr void for_each_member_impl(T& obj, Fn&& fn,
+                                            std::index_sequence<Is...>)
+        {
+            (fn(nonstatic_member_names_v<T>[Is],
+                [:nonstatic_members_v<T>[Is]:](obj)),
+             ...);
+        }
+    } // namespace detail
+
+    template <typename T, typename Fn>
+    constexpr void for_each_member(T& obj, Fn&& fn)
+    {
+        detail::for_each_member_impl(
+            obj, std::forward<Fn>(fn),
+            std::make_index_sequence<nonstatic_members_v<T>.size()> {});
+    }
 } // namespace refl
 
 // #pragma warning(pop)

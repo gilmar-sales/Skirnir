@@ -2,12 +2,23 @@
 
 #include "Common.hpp"
 #include "Logger.hpp"
+#include "Reflection.hpp"
 #include "ServiceId.hpp"
+
+#include <ostream>
+#include <vector>
 
 namespace SKIRNIR_NAMESPACE
 {
     class IApplication;
 
+    /**
+     * @brief Resolves services from a @ref ServiceCollection.
+     *
+     * Supports both single (@ref GetService) and multi (@ref GetServices)
+     * registration. For Singletons with multiple registrations, the first
+     * registration wins (matching .NET behavior).
+     */
     class ServiceProvider : public std::enable_shared_from_this<ServiceProvider>
     {
       public:
@@ -34,9 +45,7 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Resolves a service of the specified type.
          *
-         * @tparam TService The service type to resolve
-         * @return          A shared_ptr to the service instance, or nullptr on
-         * error
+         * For multi-registered types, returns the first registration.
          */
         template <typename TService>
         Ref<TService> GetService()
@@ -46,10 +55,34 @@ namespace SKIRNIR_NAMESPACE
         }
 
         /**
-         * @brief Checks whether a service type is registered.
+         * @brief Resolves all services registered for @p TService.
          *
-         * @tparam TService The service type to check
-         * @return          True if registered, false otherwise
+         * For Singleton/Scoped lifetimes, the same instance is not returned
+         * more than once (de-duplicated by pointer). Transient registrations
+         * always produce new instances.
+         */
+        template <typename TService>
+        std::vector<Ref<TService>> GetServices()
+        {
+            std::vector<Ref<TService>> results;
+            auto serviceIds = std::set<ServiceDescription>();
+            auto range =
+                mServiceDefinitionMap->equal_range(GetServiceId<TService>());
+
+            std::set<Ref<void>> seen;
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                auto service = GetServiceImpl<TService>(serviceIds, it->second);
+                if (service && seen.insert(service).second)
+                {
+                    results.push_back(std::move(service));
+                }
+            }
+            return results;
+        }
+
+        /**
+         * @brief Checks whether a service type is registered.
          */
         template <typename TService>
         [[nodiscard]] bool Contains() const
@@ -59,30 +92,35 @@ namespace SKIRNIR_NAMESPACE
 
         /**
          * @brief Creates a new ServiceScope for scoped service resolution.
-         *
-         * @return A new ServiceScope instance bound to this provider
          */
         Ref<ServiceScope> CreateServiceScope() const;
 
-      private:
+        /**
+         * @brief Validates the service graph.
+         *
+         * For every Singleton registration, attempts to construct an
+         * instance so missing transitive dependencies and unresolved ctors
+         * surface eagerly. Aggregates failures and throws a single
+         * @c std::runtime_error listing every missing service. Successfully
+         * constructed singletons are stored in the cache so subsequent
+         * @ref GetService calls are free.
+         */
+        void ValidateOnBuild();
+
+        /**
+         * @brief Prints a diagnostic tree of registered services to @p os.
+         *
+         * Includes lifetime, contract name, registration count, and (when
+         * available) the constructor parameter types of each registration.
+         */
+        void PrintDiagnostics(std::ostream& os) const;
+
+      public:
         /**
          * @brief Internal implementation of service resolution.
          *
-         * Handles transient, singleton, and scoped service lifecycle.
-         * Detects circular dependencies and validates service registration.
-         *
-         * @tparam TService             The service type to resolve
-         * @param servicesDescriptions  Set tracking resolution chain for cycle
-         * detection
-         * @return                      A shared_ptr to the resolved service
-         *
-         * @throws std::runtime_error  On circular dependency or unregistered
-         * service
-         *
-         * @note  For scoped services, must be called from a scoped provider
-         * @note  The servicesDescriptions set is modified during resolution and
-         *        cleaned up on singleton retrieval to prevent false cycle
-         * detection
+         * Public so that @c Resolve<Arg> in @c Common.hpp can dispatch to
+         * it; not intended for direct use by application code.
          */
         template <typename TService>
         Ref<TService> GetServiceImpl(
@@ -110,15 +148,29 @@ namespace SKIRNIR_NAMESPACE
                             "Unable get unregistered service: '{}'",
                             refl::type_name<TService>());
 
-            switch (const auto& serviceDefinition =
-                        mServiceDefinitionMap->at(GetServiceId<TService>());
-                    serviceDefinition.lifetime)
+            // Resolve the first registration (for single GetService).
+            auto range =
+                mServiceDefinitionMap->equal_range(GetServiceId<TService>());
+            if (range.first == range.second)
+            {
+                return nullptr;
+            }
+            const auto& serviceDefinition = range.first->second;
+
+            return GetServiceImpl<TService>(servicesDescriptions,
+                                            serviceDefinition);
+        }
+
+        template <typename TService>
+        Ref<TService> GetServiceImpl(
+            std::set<ServiceDescription>& servicesDescriptions,
+            const ServiceDefinition&      serviceDefinition)
+        {
+            switch (serviceDefinition.lifetime)
             {
                 case LifeTime::Transient: {
                     auto service =
-                        mServiceDefinitionMap->at(GetServiceId<TService>())
-                            .factory(*this, servicesDescriptions);
-
+                        serviceDefinition.factory(*this, servicesDescriptions);
                     return skr::RefCast<TService>(service);
                 }
                 case LifeTime::Singleton: {
@@ -134,7 +186,6 @@ namespace SKIRNIR_NAMESPACE
                         if constexpr (std::is_base_of_v<IApplication, TService>)
                         {
                             mApplication = skr::RefCast<IApplication>(service);
-
                             return skr::RefCast<TService>(service);
                         }
 
@@ -149,7 +200,9 @@ namespace SKIRNIR_NAMESPACE
                         return skr::RefCast<TService>(mApplication.lock());
                     }
 
-                    servicesDescriptions.erase(serviceDescription);
+                    servicesDescriptions.erase(ServiceDescription {
+                        .id   = GetServiceId<TService>(),
+                        .name = refl::type_name<TService>() });
 
                     return skr::RefCast<TService>(
                         mSingletonsCache->at(GetServiceId<TService>()));
@@ -174,15 +227,15 @@ namespace SKIRNIR_NAMESPACE
                         return skr::RefCast<TService>(service);
                     }
 
-                    servicesDescriptions.erase(serviceDescription);
+                    servicesDescriptions.erase(ServiceDescription {
+                        .id   = GetServiceId<TService>(),
+                        .name = refl::type_name<TService>() });
 
                     return skr::RefCast<TService>(
                         mScopeCache->at(GetServiceId<TService>()));
                 }
-                default: {
-                    return nullptr;
-                }
             }
+            return nullptr;
         }
 
         friend class ServiceCollection;
@@ -193,7 +246,7 @@ namespace SKIRNIR_NAMESPACE
         Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
         Ref<ServicesCache>           mSingletonsCache;
         Ref<ServicesCache>           mScopeCache;
-        WeakRef<IApplication>  mApplication;
+        WeakRef<IApplication>        mApplication;
     };
 
 } // namespace SKIRNIR_NAMESPACE

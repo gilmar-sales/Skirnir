@@ -1,303 +1,848 @@
 #include "Skirnir/Configuration.hpp"
 
-#include <algorithm>
-#include <cctype>
+#include <cmath>
+#include <cstdint>
+#include <iomanip>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <variant>
 
 namespace SKIRNIR_NAMESPACE
 {
-    bool JsonConfigurationOptions::LoadFromFile(
-        const std::filesystem::path& path)
+    namespace
     {
-        if (!std::filesystem::exists(path))
+        // Intermediate merge representation; built from simdjson elements
+        // and serialized back to a JSON string for the final parse.
+        struct JsonValue;
+
+        using JsonObject = std::map<std::string, std::shared_ptr<JsonValue>>;
+        using JsonArray  = std::vector<std::shared_ptr<JsonValue>>;
+
+        struct JsonValue
         {
-            return false;
-        }
+            std::variant<std::monostate, bool, int64_t, double, std::string,
+                         std::shared_ptr<JsonObject>,
+                         std::shared_ptr<JsonArray>>
+                data;
 
-        std::ifstream file(path);
-        if (!file.is_open())
-        {
-            return false;
-        }
+            static JsonValue Null() { return JsonValue { std::monostate {} }; }
 
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        mJsonContent = buffer.str();
+            static JsonValue FromBool(bool b) { return JsonValue { b }; }
 
-        return !mJsonContent.empty();
-    }
+            static JsonValue FromInt(int64_t i) { return JsonValue { i }; }
 
-    bool JsonConfigurationOptions::LoadFromString(std::string_view json)
-    {
-        mJsonContent = std::string(json);
-        return !mJsonContent.empty();
-    }
+            static JsonValue FromDouble(double d) { return JsonValue { d }; }
 
-    std::optional<std::string> JsonConfigurationOptions::GetValue(
-        std::string_view key) const
-    {
-        return FindValueInJson(mJsonContent, key);
-    }
-
-    bool JsonConfigurationOptions::HasKey(std::string_view key) const
-    {
-        return FindValueInJson(mJsonContent, key).has_value();
-    }
-
-    std::optional<std::string> JsonConfigurationOptions::FindValueInJson(
-        std::string_view json, std::string_view key)
-    {
-        // Parse dot-separated key path
-        size_t dotPos = key.find('.');
-
-        std::string_view currentKey = (dotPos == std::string_view::npos)
-                                          ? key
-                                          : key.substr(0, dotPos);
-        std::string_view remainingKey =
-            (dotPos == std::string_view::npos) ? std::string_view()
-                                               : key.substr(dotPos + 1);
-
-        // Find the key in JSON - look for "key":
-        std::string searchPattern =
-            "\"" + std::string(currentKey) + "\""; // NOLINT
-        size_t keyPos = json.find(searchPattern);
-
-        if (keyPos == std::string_view::npos)
-        {
-            return std::nullopt;
-        }
-
-        // Find the colon after the key
-        size_t colonPos = json.find(':', keyPos);
-        if (colonPos == std::string_view::npos)
-        {
-            return std::nullopt;
-        }
-
-        // Skip whitespace and find the value
-        size_t valueStart = colonPos + 1;
-        while (valueStart < json.size() &&
-               (json[valueStart] == ' ' || json[valueStart] == '\t' ||
-                json[valueStart] == '\n' || json[valueStart] == '\r'))
-        {
-            valueStart++;
-        }
-
-        if (valueStart >= json.size())
-        {
-            return std::nullopt;
-        }
-
-        // Handle string values
-        if (json[valueStart] == '"')
-        {
-            return ExtractStringValue(json, valueStart + 1);
-        }
-
-        // Handle non-string values (numbers, booleans, null, objects, arrays)
-        size_t valueEnd = valueStart;
-        int braceCount = 0;
-        int bracketCount = 0;
-        bool inString = false;
-
-        while (valueEnd < json.size())
-        {
-            char c = json[valueEnd];
-
-            if (c == '"' && (valueEnd == 0 || json[valueEnd - 1] != '\\'))
+            static JsonValue FromString(std::string s)
             {
-                inString = !inString;
+                return JsonValue { std::move(s) };
             }
-            else if (!inString)
+
+            static JsonValue FromObject()
             {
-                if (c == '{')
-                {
-                    braceCount++;
+                return JsonValue { std::make_shared<JsonObject>() };
+            }
+
+            static JsonValue FromArray()
+            {
+                return JsonValue { std::make_shared<JsonArray>() };
+            }
+
+            bool IsObject() const
+            {
+                return std::holds_alternative<std::shared_ptr<JsonObject>>(
+                    data);
+            }
+            bool IsArray() const
+            {
+                return std::holds_alternative<std::shared_ptr<JsonArray>>(data);
+            }
+            JsonObject& AsObject()
+            {
+                return *std::get<std::shared_ptr<JsonObject>>(data);
+            }
+            const JsonObject& AsObject() const
+            {
+                return *std::get<std::shared_ptr<JsonObject>>(data);
+            }
+            JsonArray& AsArray()
+            {
+                return *std::get<std::shared_ptr<JsonArray>>(data);
+            }
+            const JsonArray& AsArray() const
+            {
+                return *std::get<std::shared_ptr<JsonArray>>(data);
+            }
+        };
+
+        std::shared_ptr<JsonValue> MakeNull()
+        {
+            return std::make_shared<JsonValue>(JsonValue::Null());
+        }
+
+        std::shared_ptr<JsonValue> Convert(simdjson::dom::element el)
+        {
+            simdjson::dom::element_type t = el.type();
+            switch (t)
+            {
+                case simdjson::dom::element_type::NULL_VALUE:
+                    return MakeNull();
+                case simdjson::dom::element_type::BOOL: {
+                    bool v;
+                    if (el.get_bool().get(v) != simdjson::SUCCESS)
+                        return MakeNull();
+                    return std::make_shared<JsonValue>(JsonValue::FromBool(v));
                 }
-                else if (c == '}')
-                {
-                    if (braceCount == 0)
+                case simdjson::dom::element_type::INT64: {
+                    int64_t v;
+                    if (el.get_int64().get(v) != simdjson::SUCCESS)
+                        return MakeNull();
+                    return std::make_shared<JsonValue>(JsonValue::FromInt(v));
+                }
+                case simdjson::dom::element_type::UINT64: {
+                    uint64_t v;
+                    if (el.get_uint64().get(v) != simdjson::SUCCESS)
+                        return MakeNull();
+                    return std::make_shared<JsonValue>(
+                        JsonValue::FromInt(static_cast<int64_t>(v)));
+                }
+                case simdjson::dom::element_type::DOUBLE: {
+                    double v;
+                    if (el.get_double().get(v) != simdjson::SUCCESS)
+                        return MakeNull();
+                    return std::make_shared<JsonValue>(
+                        JsonValue::FromDouble(v));
+                }
+                case simdjson::dom::element_type::STRING: {
+                    std::string_view sv;
+                    if (el.get_string().get(sv) != simdjson::SUCCESS)
+                        return MakeNull();
+                    return std::make_shared<JsonValue>(
+                        JsonValue::FromString(std::string(sv)));
+                }
+                case simdjson::dom::element_type::ARRAY: {
+                    auto arr =
+                        std::make_shared<JsonValue>(JsonValue::FromArray());
+                    for (auto item : el.get_array())
                     {
-                        // Reached end of object, don't include }
-                        break;
+                        arr->AsArray().push_back(Convert(item));
                     }
-                    braceCount--;
+                    return arr;
                 }
-                else if (c == '[')
-                {
-                    bracketCount++;
-                }
-                else if (c == ']')
-                {
-                    if (bracketCount == 0)
+                case simdjson::dom::element_type::OBJECT: {
+                    auto obj =
+                        std::make_shared<JsonValue>(JsonValue::FromObject());
+                    for (auto kv : el.get_object())
                     {
-                        // End of array, don't include ]
-                        break;
+                        std::string_view k              = kv.key;
+                        obj->AsObject()[std::string(k)] = Convert(kv.value);
                     }
-                    bracketCount--;
-                }
-                else if ((c == ',' || c == ' ' || c == '\t' || c == '\n' ||
-                          c == '\r') &&
-                         braceCount == 0 && bracketCount == 0)
-                {
-                    break;
-                }
-                else if (c == '}' && braceCount == 0 && bracketCount == 0)
-                {
-                    // End of object reached
-                    break;
+                    return obj;
                 }
             }
-
-            valueEnd++;
+            return MakeNull();
         }
 
-        std::string_view value = json.substr(valueStart, valueEnd - valueStart);
-        value = TrimWhitespace(value);
-
-        // Handle trailing closing brace that wasn't part of the value
-        if (!value.empty() && value.back() == '}')
+        // Recursively merge @p src into @p dst, with @p src overriding
+        // @p dst on key conflicts (object keys recurse; everything else
+        // replaces wholesale).
+        void MergeInto(
+            std::shared_ptr<JsonValue> dst, std::shared_ptr<JsonValue> src)
         {
-            value = value.substr(0, value.size() - 1);
-            value = TrimWhitespace(value);
-        }
-
-        // If there's a remaining key and we have an object, recurse
-        if (!remainingKey.empty() && !remainingKey.ends_with('.') &&
-            !value.empty() && value.front() == '{')
-        {
-            // Find the opening brace
-            size_t objStart = json.find('{', valueStart);
-            if (objStart != std::string_view::npos)
+            if (!src || !dst)
+                return;
+            if (!src->IsObject() || !dst->IsObject())
             {
-                // Find matching closing brace
-                int depth = 1;
-                size_t objEnd = objStart + 1;
-                while (objEnd < json.size() && depth > 0)
+                *dst = *src;
+                return;
+            }
+            for (auto& [k, v] : src->AsObject())
+            {
+                auto it = dst->AsObject().find(k);
+                if (it == dst->AsObject().end())
                 {
-                    if (json[objEnd] == '{')
-                        depth++;
-                    else if (json[objEnd] == '}')
-                        depth--;
-                    objEnd++;
+                    dst->AsObject().emplace(k, v);
                 }
-
-                std::string_view subObject =
-                    json.substr(objStart, objEnd - objStart);
-                return FindValueInJson(subObject, remainingKey);
+                else
+                {
+                    MergeInto(it->second, v);
+                }
             }
         }
 
-        // Handle boolean values
-        if (value == "true")
-            return std::string("true");
-        if (value == "false")
-            return std::string("false");
-
-        // Handle null
-        if (value == "null")
-            return std::nullopt;
-
-        // Return the value as string
-        return std::string(value);
-    }
-
-    std::string_view JsonConfigurationOptions::TrimWhitespace(
-        std::string_view s)
-    {
-        while (!s.empty() &&
-               (s.front() == ' ' || s.front() == '\t' || s.front() == '\n' ||
-                s.front() == '\r'))
+        void AppendString(std::string& out, std::string_view s)
         {
-            s = s.substr(1);
-        }
-
-        while (!s.empty() &&
-               (s.back() == ' ' || s.back() == '\t' || s.back() == '\n' ||
-                s.back() == '\r'))
-        {
-            s = s.substr(0, s.size() - 1);
-        }
-
-        return s;
-    }
-
-    std::string JsonConfigurationOptions::ExtractStringValue(
-        std::string_view json, size_t startPos)
-    {
-        std::string result;
-        bool        escaped = false;
-
-        for (size_t i = startPos; i < json.size(); i++)
-        {
-            char c = json[i];
-
-            if (escaped)
+            out.push_back('"');
+            for (char c : s)
             {
                 switch (c)
                 {
-                    case 'n':
-                        result += '\n';
-                        break;
-                    case 't':
-                        result += '\t';
-                        break;
-                    case 'r':
-                        result += '\r';
+                    case '"':
+                        out += "\\\"";
                         break;
                     case '\\':
-                        result += '\\';
+                        out += "\\\\";
                         break;
-                    case '"':
-                        result += '"';
+                    case '\b':
+                        out += "\\b";
+                        break;
+                    case '\f':
+                        out += "\\f";
+                        break;
+                    case '\n':
+                        out += "\\n";
+                        break;
+                    case '\r':
+                        out += "\\r";
+                        break;
+                    case '\t':
+                        out += "\\t";
                         break;
                     default:
-                        result += c;
+                        if (static_cast<unsigned char>(c) < 0x20)
+                        {
+                            char buf[8];
+                            std::snprintf(buf, sizeof(buf), "\\u%04x",
+                                          static_cast<unsigned char>(c));
+                            out += buf;
+                        }
+                        else
+                        {
+                            out.push_back(c);
+                        }
                         break;
                 }
-                escaped = false;
             }
-            else if (c == '\\')
+            out.push_back('"');
+        }
+
+        void Serialize(const std::shared_ptr<JsonValue>& v, std::string& out,
+                       bool wrapRootInObject = false)
+        {
+            if (!v)
             {
-                escaped = true;
+                if (wrapRootInObject)
+                    out += "{}";
+                else
+                    out += "null";
+                return;
             }
-            else if (c == '"')
+
+            if (v->IsObject())
             {
-                break;
+                if (wrapRootInObject && v->AsObject().empty())
+                {
+                    out += "{}";
+                    return;
+                }
+                out.push_back('{');
+                bool first = true;
+                for (auto& [k, child] : v->AsObject())
+                {
+                    if (!first)
+                        out.push_back(',');
+                    first = false;
+                    AppendString(out, k);
+                    out.push_back(':');
+                    Serialize(child, out, false);
+                }
+                out.push_back('}');
+            }
+            else if (v->IsArray())
+            {
+                out.push_back('[');
+                bool first = true;
+                for (auto& child : v->AsArray())
+                {
+                    if (!first)
+                        out.push_back(',');
+                    first = false;
+                    Serialize(child, out, false);
+                }
+                out.push_back(']');
             }
             else
             {
-                result += c;
+                std::visit(
+                    [&out](auto&& arg) {
+                        using A = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_same_v<A, std::monostate>)
+                            out += "null";
+                        else if constexpr (std::is_same_v<A, bool>)
+                            out += arg ? "true" : "false";
+                        else if constexpr (std::is_same_v<A, int64_t>)
+                            out += std::to_string(arg);
+                        else if constexpr (std::is_same_v<A, double>)
+                        {
+                            if (std::isnan(arg) || std::isinf(arg))
+                                out += "null";
+                            else
+                            {
+                                std::ostringstream oss;
+                                oss << std::setprecision(17) << arg;
+                                out += oss.str();
+                            }
+                        }
+                        else if constexpr (std::is_same_v<A, std::string>)
+                            AppendString(out, arg);
+                    },
+                    v->data);
             }
         }
 
+        // Serialize a simdjson DOM element to a JSON string. Used by
+        // GetSection() to produce a sub-tree that owns its own parser.
+        std::string SerializeElement(simdjson::dom::element el)
+        {
+            std::string out;
+            // The single-pass DOM API does not allow walking the same
+            // element twice, but we only need to walk it once. We collect
+            // strings into a vector so the underlying parser's tape remains
+            // valid until we are done emitting.
+            std::vector<std::string> stringStorage;
+
+            std::function<void(simdjson::dom::element)> write;
+            write = [&](simdjson::dom::element e) {
+                switch (e.type())
+                {
+                    case simdjson::dom::element_type::NULL_VALUE:
+                        out += "null";
+                        break;
+                    case simdjson::dom::element_type::BOOL: {
+                        bool b;
+                        if (e.get_bool().get(b) == simdjson::SUCCESS)
+                            out += b ? "true" : "false";
+                        else
+                            out += "null";
+                        break;
+                    }
+                    case simdjson::dom::element_type::INT64: {
+                        int64_t i;
+                        if (e.get_int64().get(i) == simdjson::SUCCESS)
+                            out += std::to_string(i);
+                        else
+                            out += "null";
+                        break;
+                    }
+                    case simdjson::dom::element_type::UINT64: {
+                        uint64_t u;
+                        if (e.get_uint64().get(u) == simdjson::SUCCESS)
+                            out += std::to_string(u);
+                        else
+                            out += "null";
+                        break;
+                    }
+                    case simdjson::dom::element_type::DOUBLE: {
+                        double d;
+                        if (e.get_double().get(d) == simdjson::SUCCESS)
+                        {
+                            if (std::isnan(d) || std::isinf(d))
+                                out += "null";
+                            else
+                            {
+                                std::ostringstream oss;
+                                oss << std::setprecision(17) << d;
+                                out += oss.str();
+                            }
+                        }
+                        else
+                            out += "null";
+                        break;
+                    }
+                    case simdjson::dom::element_type::STRING: {
+                        std::string_view sv;
+                        if (e.get_string().get(sv) == simdjson::SUCCESS)
+                            AppendString(out, sv);
+                        else
+                            out += "null";
+                        break;
+                    }
+                    case simdjson::dom::element_type::ARRAY: {
+                        out.push_back('[');
+                        bool first = true;
+                        for (auto item : e.get_array())
+                        {
+                            if (!first)
+                                out.push_back(',');
+                            first = false;
+                            write(item);
+                        }
+                        out.push_back(']');
+                        break;
+                    }
+                    case simdjson::dom::element_type::OBJECT: {
+                        out.push_back('{');
+                        bool first = true;
+                        for (auto kv : e.get_object())
+                        {
+                            if (!first)
+                                out.push_back(',');
+                            first = false;
+                            AppendString(out, kv.key);
+                            out.push_back(':');
+                            write(kv.value);
+                        }
+                        out.push_back('}');
+                        break;
+                    }
+                }
+            };
+
+            write(el);
+            return out;
+        }
+
+        simdjson::dom::element ParseOrThrow(simdjson::dom::parser& parser,
+                                            const std::string&     src,
+                                            std::string_view       what)
+        {
+            auto result = parser.parse(src);
+            if (result.error() != simdjson::SUCCESS)
+            {
+                throw std::runtime_error(
+                    "Skirnir: failed to parse " + std::string(what) +
+                    " as JSON (" + simdjson::error_message(result.error()) +
+                    ")");
+            }
+            return result.value();
+        }
+
+        std::string ReadFileOrThrow(const std::filesystem::path& path)
+        {
+            std::ifstream file(path);
+            if (!file.is_open())
+            {
+                throw std::runtime_error(
+                    "Skirnir: failed to open config file '" + path.string() +
+                    "'");
+            }
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            return buffer.str();
+        }
+    } // namespace
+
+    // ------------------------------------------------------------------
+    // Sources
+    // ------------------------------------------------------------------
+
+    JsonFileSource::JsonFileSource(std::filesystem::path path) :
+        mPath(std::move(path))
+    {
+    }
+
+    simdjson::dom::element JsonFileSource::Load()
+    {
+        if (!mLoaded)
+        {
+            mContent = ReadFileOrThrow(mPath);
+            mElement = ParseOrThrow(
+                mParser, mContent, "config file '" + mPath.string() + "'");
+            mLoaded = true;
+        }
+        return mElement;
+    }
+
+    JsonStringSource::JsonStringSource(std::string json) :
+        mContent(std::move(json))
+    {
+    }
+
+    simdjson::dom::element JsonStringSource::Load()
+    {
+        if (!mLoaded)
+        {
+            mElement = ParseOrThrow(mParser, mContent, "JSON string");
+            mLoaded  = true;
+        }
+        return mElement;
+    }
+
+    std::string InMemorySource::BuildJson() const
+    {
+        // Build a nested object tree from dotted keys, then serialize.
+        auto root = std::make_shared<JsonValue>(JsonValue::FromObject());
+        for (const auto& [k, v] : mFlat)
+        {
+            std::shared_ptr<JsonValue> cursor = root;
+            std::string_view           key    = k;
+            while (true)
+            {
+                auto dot = key.find('.');
+                if (dot == std::string_view::npos)
+                {
+                    std::string leaf(key);
+                    auto&       map = cursor->AsObject();
+                    if (v == "true")
+                        map[leaf] = std::make_shared<JsonValue>(
+                            JsonValue::FromBool(true));
+                    else if (v == "false")
+                        map[leaf] = std::make_shared<JsonValue>(
+                            JsonValue::FromBool(false));
+                    else
+                    {
+                        // Try to parse as integer / double.
+                        try
+                        {
+                            size_t  pos = 0;
+                            int64_t i   = std::stoll(std::string(v), &pos);
+                            if (pos == v.size())
+                            {
+                                map[leaf] = std::make_shared<JsonValue>(
+                                    JsonValue::FromInt(i));
+                                break;
+                            }
+                        }
+                        catch (...)
+                        {
+                        }
+                        try
+                        {
+                            size_t pos = 0;
+                            double d   = std::stod(std::string(v), &pos);
+                            if (pos == v.size())
+                            {
+                                map[leaf] = std::make_shared<JsonValue>(
+                                    JsonValue::FromDouble(d));
+                                break;
+                            }
+                        }
+                        catch (...)
+                        {
+                        }
+                        map[leaf] = std::make_shared<JsonValue>(
+                            JsonValue::FromString(v));
+                    }
+                    break;
+                }
+                std::string segment(key.substr(0, dot));
+                auto&       map = cursor->AsObject();
+                auto        it  = map.find(segment);
+                if (it == map.end())
+                {
+                    auto child =
+                        std::make_shared<JsonValue>(JsonValue::FromObject());
+                    map[segment] = child;
+                    cursor       = child;
+                }
+                else
+                {
+                    if (!it->second->IsObject())
+                    {
+                        auto child = std::make_shared<JsonValue>(
+                            JsonValue::FromObject());
+                        it->second = child;
+                    }
+                    cursor = it->second;
+                }
+                key = key.substr(dot + 1);
+            }
+        }
+
+        std::string out;
+        Serialize(root, out, true);
+        return out;
+    }
+
+    simdjson::dom::element InMemorySource::Load()
+    {
+        if (mDirty)
+        {
+            mSerialized = BuildJson();
+            mParser     = simdjson::dom::parser {};
+            mElement = ParseOrThrow(mParser, mSerialized, "in-memory source");
+            mDirty   = false;
+        }
+        return mElement;
+    }
+
+    // ------------------------------------------------------------------
+    // ConfigurationOptions
+    // ------------------------------------------------------------------
+
+    std::vector<std::string_view> ConfigurationOptions::SplitKey(
+        std::string_view key)
+    {
+        std::vector<std::string_view> parts;
+        while (!key.empty())
+        {
+            auto dot = key.find('.');
+            if (dot == std::string_view::npos)
+            {
+                parts.push_back(key);
+                break;
+            }
+            parts.push_back(key.substr(0, dot));
+            key = key.substr(dot + 1);
+        }
+        return parts;
+    }
+
+    std::optional<simdjson::dom::element> ConfigurationOptions::Navigate(
+        std::string_view key) const
+    {
+        auto parts = SplitKey(key);
+        if (parts.empty())
+            return mElement;
+
+        simdjson::dom::element cursor = mElement;
+        for (auto segment : parts)
+        {
+            if (!cursor.is_object())
+                return std::nullopt;
+            auto obj = cursor.get_object();
+            for (auto kv : obj)
+            {
+                if (kv.key == segment)
+                {
+                    cursor = kv.value;
+                    goto next;
+                }
+            }
+            return std::nullopt;
+        next:;
+        }
+        return cursor;
+    }
+
+    std::optional<std::string> ConfigurationOptions::GetValue(
+        std::string_view key) const
+    {
+        auto el = Navigate(key);
+        if (!el)
+            return std::nullopt;
+        if (el->is_null())
+            return std::nullopt;
+        return StringifyRaw(*el);
+    }
+
+    bool ConfigurationOptions::HasKey(std::string_view key) const
+    {
+        return Navigate(key).has_value();
+    }
+
+    bool ConfigurationOptions::GetBool(std::string_view key,
+                                       bool             defaultValue) const
+    {
+        auto el = Navigate(key);
+        if (!el || !el->is_bool())
+            return defaultValue;
+        bool v      = defaultValue;
+        std::ignore = el->get_bool().get(v);
+        return v;
+    }
+
+    int64_t ConfigurationOptions::GetInt(std::string_view key,
+                                         int64_t          defaultValue) const
+    {
+        auto el = Navigate(key);
+        if (!el)
+            return defaultValue;
+        if (el->is_int64())
+        {
+            int64_t v = defaultValue;
+            if (el->get_int64().get(v) == simdjson::SUCCESS)
+                return v;
+        }
+        if (el->is_uint64())
+        {
+            uint64_t v = 0;
+            if (el->get_uint64().get(v) == simdjson::SUCCESS)
+                return static_cast<int64_t>(v);
+        }
+        if (el->is_double())
+        {
+            double v = 0.0;
+            if (el->get_double().get(v) == simdjson::SUCCESS)
+                return static_cast<int64_t>(v);
+        }
+        return defaultValue;
+    }
+
+    double ConfigurationOptions::GetDouble(std::string_view key,
+                                           double           defaultValue) const
+    {
+        auto el = Navigate(key);
+        if (!el)
+            return defaultValue;
+        if (el->is_number())
+        {
+            double v = defaultValue;
+            if (el->get_double().get(v) == simdjson::SUCCESS)
+                return v;
+        }
+        return defaultValue;
+    }
+
+    std::string ConfigurationOptions::GetString(
+        std::string_view key, std::string_view defaultValue) const
+    {
+        auto el = Navigate(key);
+        if (!el)
+            return std::string(defaultValue);
+        if (el->is_string())
+        {
+            std::string_view sv = defaultValue;
+            if (el->get_string().get(sv) == simdjson::SUCCESS)
+                return std::string(sv);
+        }
+        if (el->is_null())
+            return std::string(defaultValue);
+        return Stringify(*el);
+    }
+
+    std::vector<std::string> ConfigurationOptions::GetArray(
+        std::string_view key) const
+    {
+        std::vector<std::string> result;
+        auto                     el = Navigate(key);
+        if (!el || !el->is_array())
+            return result;
+        for (auto item : el->get_array())
+        {
+            if (item.is_string())
+            {
+                std::string_view sv;
+                if (item.get_string().get(sv) == simdjson::SUCCESS)
+                    result.emplace_back(sv);
+            }
+            else
+            {
+                result.emplace_back(Stringify(item));
+            }
+        }
         return result;
     }
+
+    Ref<ConfigurationOptions> ConfigurationOptions::GetSection(
+        std::string_view key) const
+    {
+        auto el = Navigate(key);
+        if (!el)
+            return MakeRef<ConfigurationOptions>();
+        if (!el->is_object())
+            return MakeRef<ConfigurationOptions>();
+
+        // Serialize the sub-tree and parse it into a fresh parser so this
+        // child ConfigurationOptions can outlive the parent parser.
+        std::string slice  = SerializeElement(*el);
+        auto        parser = std::make_unique<simdjson::dom::parser>();
+        auto        rootEl =
+            ParseOrThrow(*parser, slice, "section '" + std::string(key) + "'");
+        return MakeRef<ConfigurationOptions>(std::move(parser), rootEl);
+    }
+
+    std::string ConfigurationOptions::Stringify(simdjson::dom::element el)
+    {
+        return SerializeElement(el);
+    }
+
+    std::string ConfigurationOptions::StringifyRaw(simdjson::dom::element el)
+    {
+        // GetValue semantics: for strings, return the unquoted text; for
+        // booleans, "true"/"false"; for numbers, the literal number; for
+        // null, empty; for objects/arrays, the JSON representation.
+        switch (el.type())
+        {
+            case simdjson::dom::element_type::NULL_VALUE:
+                return {};
+            case simdjson::dom::element_type::BOOL: {
+                bool b;
+                if (el.get_bool().get(b) == simdjson::SUCCESS)
+                    return b ? "true" : "false";
+                return {};
+            }
+            case simdjson::dom::element_type::INT64: {
+                int64_t i;
+                if (el.get_int64().get(i) == simdjson::SUCCESS)
+                    return std::to_string(i);
+                return {};
+            }
+            case simdjson::dom::element_type::UINT64: {
+                uint64_t u;
+                if (el.get_uint64().get(u) == simdjson::SUCCESS)
+                    return std::to_string(u);
+                return {};
+            }
+            case simdjson::dom::element_type::DOUBLE: {
+                double d;
+                if (el.get_double().get(d) == simdjson::SUCCESS)
+                {
+                    if (std::isnan(d) || std::isinf(d))
+                        return {};
+                    std::ostringstream oss;
+                    oss << std::setprecision(17) << d;
+                    return oss.str();
+                }
+                return {};
+            }
+            case simdjson::dom::element_type::STRING: {
+                std::string_view sv;
+                if (el.get_string().get(sv) == simdjson::SUCCESS)
+                    return std::string(sv);
+                return {};
+            }
+            default:
+                return SerializeElement(el);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // ConfigurationBuilder
+    // ------------------------------------------------------------------
 
     ConfigurationBuilder& ConfigurationBuilder::AddJsonFile(
         const std::filesystem::path& path)
     {
-        std::ifstream file(path);
-        if (file.is_open())
-        {
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-            mJsonContent = buffer.str();
-        }
+        mSources.push_back(MakeRef<JsonFileSource>(path));
         return *this;
     }
 
     ConfigurationBuilder& ConfigurationBuilder::AddJsonString(
         std::string_view json)
     {
-        mJsonContent = std::string(json);
+        mSources.push_back(MakeRef<JsonStringSource>(std::string(json)));
+        return *this;
+    }
+
+    ConfigurationBuilder& ConfigurationBuilder::AddSource(
+        Ref<IConfigurationSource> source)
+    {
+        if (source)
+            mSources.push_back(std::move(source));
+        return *this;
+    }
+
+    ConfigurationBuilder& ConfigurationBuilder::AddInMemory(
+        std::initializer_list<std::pair<std::string, std::string>> entries)
+    {
+        mSources.push_back(MakeRef<InMemorySource>(entries));
         return *this;
     }
 
     Ref<ConfigurationOptions> ConfigurationBuilder::Build()
     {
-        auto config = MakeRef<JsonConfigurationOptions>();
-        config->LoadFromString(mJsonContent);
-        return config;
+        // Merge all sources into a single intermediate object tree. Sources
+        // must stay alive for the duration of this merge so the underlying
+        // parsers do not go out from under us.
+        auto merged = std::make_shared<JsonValue>(JsonValue::FromObject());
+        for (auto& source : mSources)
+        {
+            simdjson::dom::element root = source->Load();
+            // Non-object roots are ignored: a configuration source is
+            // expected to provide a top-level object.
+            if (!root.is_object())
+                continue;
+            auto converted = Convert(root);
+            MergeInto(merged, converted);
+        }
+
+        std::string json;
+        Serialize(merged, json, true);
+
+        auto parser = std::make_unique<simdjson::dom::parser>();
+        auto rootEl = ParseOrThrow(*parser, json, "merged configuration");
+        return MakeRef<ConfigurationOptions>(std::move(parser), rootEl);
     }
 } // namespace SKIRNIR_NAMESPACE
