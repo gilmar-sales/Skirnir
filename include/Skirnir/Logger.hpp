@@ -45,10 +45,10 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Configures the default log level from a configuration source.
          * @param config The configuration options
-         * @param path The key path to the log level (default: "logging.level")
+         * @param path The key path to the log level (default: "logging.logLevel.default")
          */
         void ConfigureFrom(Ref<ConfigurationOptions> config,
-                           std::string_view          path = "logging.level");
+                           std::string_view          path = "logging.logLevel.default");
 
         template <typename T>
         LogLevel GetLogLevelFor()

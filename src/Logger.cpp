@@ -41,7 +41,7 @@ namespace SKIRNIR_NAMESPACE
 
         // Load namespace-specific log levels
         // Look for pattern: logging.namespaces.{namespace}.level
-        if (auto namespacesValue = config->GetValue("logging.namespaces");
+        if (auto namespacesValue = config->GetValue("logging.logLevel");
             namespacesValue)
         {
             // Parse the namespaces JSON object

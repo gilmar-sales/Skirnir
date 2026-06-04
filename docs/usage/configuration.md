@@ -11,10 +11,9 @@ Configuration is stored in JSON format. You can load configuration from files or
 ```json
 {
     "logging": {
-        "level": "Information",
-        "namespaces": {
-            "MyApp": "Debug",
-            "MyApp.Services": "Warning"
+        "logLevel": {
+            "default": "Information",
+            "MyApp": "Debug"
         }
     }
 }
@@ -22,10 +21,10 @@ Configuration is stored in JSON format. You can load configuration from files or
 
 ### Logger Configuration
 
-The `logging` section allows you to configure:
+The `logging.logLevel` section allows you to configure:
 
-- **level**: Default log level for all namespaces (Debug, Trace, Information, Warning, Error, Fatal, None)
-- **namespaces**: Per-namespace log level overrides
+- **default**: Default log level for all namespaces (Debug, Trace, Information, Warning, Error, Fatal, None)
+- **`<namespace>`**: Per-namespace log level overrides. Keys are matched against the C++ namespace of the type (e.g. `my_app::services`), with `::` as the separator.
 
 #### Log Levels
 
@@ -33,8 +32,8 @@ The `logging` section allows you to configure:
 |-------------|------------------------------------------------|
 | Debug       | Debug messages and above                       |
 | Trace       | Trace messages and above                       |
-| Information | Informational messages and above              |
-| Warning     | Warning messages and above                      |
+| Information | Informational messages and above               |
+| Warning     | Warning messages and above                     |
 | Error       | Error messages and above                       |
 | Fatal       | Fatal errors only                              |
 | None        | No logging                                     |
@@ -48,17 +47,17 @@ The `logging` section allows you to configure:
 
 const char* configJson = R"({
     "logging": {
-        "level": "Information",
-        "namespaces": {
+        "logLevel": {
+            "default": "Information",
             "MyApp": "Debug",
-            "MyApp.Services": "Warning"
+            "MyApp::Services": "Warning"
         }
     }
 })";
 
 auto config = skr::ConfigurationBuilder()
                   .AddJsonString(configJson)
-                  ->Build();
+                  .Build();
 ```
 
 ### Loading Configuration from File
@@ -66,56 +65,57 @@ auto config = skr::ConfigurationBuilder()
 ```cpp
 auto config = skr::ConfigurationBuilder()
                   .AddJsonFile("config.json")
-                  ->Build();
+                  .Build();
 ```
+
+Multiple sources may be chained; later sources are appended to earlier ones and can override keys.
 
 ### Configuring LoggerOptions
 
 ```cpp
 #include <Skirnir/Logger.hpp>
 
-services.AddSingleton<skr::LoggerOptions>(
-    [config](skr::ServiceProvider&) {
-        auto options = skr::MakeRef<skr::LoggerOptions>();
-        options->ConfigureFrom(config);
-        return options;
-    });
+auto options = skr::MakeRef<skr::LoggerOptions>();
+options->ConfigureFrom(config);
 ```
+
+`ConfigureFrom` reads the default log level from `logging.logLevel.default` and registers every sibling key under `logging.logLevel` as a namespace-specific level.
 
 ### Using Configuration Values
 
 ```cpp
 // Check if a key exists
-if (config->HasKey("logging.level"))
+if (config->HasKey("logging.logLevel.default"))
 {
     // Get a value
-    auto value = config->GetValue("logging.level");
+    auto value = config->GetValue("logging.logLevel.default");
 }
 
 // Access nested values using dot notation
-auto namespacedLevel = config->GetValue("logging.namespaces.MyApp");
+auto namespacedLevel = config->GetValue("logging.logLevel.MyApp");
 ```
 
 ## Namespace Hierarchy
 
-Log levels can be configured hierarchically. When looking up a log level for a type:
+Log levels can be configured hierarchically. When looking up a log level for a type, the type's full namespace (e.g. `my_app::services::DataBase`) is matched against the configured keys as follows:
 
-1. First, exact namespace match is checked
-2. If no exact match, parent namespace matches are checked (e.g., `MyApp.Services.Database` matches `MyApp.Services` if configured)
+1. Exact namespace match is checked first.
+2. If no exact match, progressively shorter namespace prefixes are tried (e.g. `my_app::services::DataBase` → `my_app::services` → `my_app`).
+3. If nothing matches, the `default` level is used.
 
 Example:
 
 ```json
 {
     "logging": {
-        "level": "Error",
-        "namespaces": {
-            "MyApp.Services": "Debug"
+        "logLevel": {
+            "default": "Error",
+            "my_app::services": "Debug"
         }
     }
 }
 ```
 
-- `MyApp` → Error (default)
-- `MyApp.Services` → Debug
-- `MyApp.Services.Database` → Debug (inherited from parent)
+- `my_app` → Error (default)
+- `my_app::services` → Debug
+- `my_app::services::DataBase` → Debug (inherited from the `my_app::services` prefix)
