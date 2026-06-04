@@ -14,6 +14,8 @@ if (NOT TARGET skirnir)
   include(FetchContent)
 
   add_library(skirnir
+            src/Configuration.cpp
+            src/Logger.cpp
             src/ServiceScope.cpp
             src/ServiceProvider.cpp)
 

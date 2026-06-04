@@ -1,19 +1,27 @@
 #pragma once
+
+#include "Common.hpp"
+#include "Reflection.hpp"
+
 #include <chrono>
+#include <map>
+#include <optional>
+#include <string>
+#include <string_view>
 
 #ifdef SKIRNIR_USE_FMT
     #include <fmt/chrono.h>
     #include <fmt/color.h>
     #include <fmt/core.h>
 #else
+    #include <format>
     #include <print>
 #endif
 
-#include "Common.hpp"
-#include "Reflection.hpp"
-
 namespace SKIRNIR_NAMESPACE
 {
+    class ConfigurationOptions;
+
     enum class LogLevel
     {
         Debug,
@@ -33,6 +41,48 @@ namespace SKIRNIR_NAMESPACE
 #else
         LogLevel logLevel = LogLevel::Debug;
 #endif
+
+        /**
+         * @brief Configures the default log level from a configuration source.
+         * @param config The configuration options
+         * @param path The key path to the log level (default: "logging.level")
+         */
+        void ConfigureFrom(Ref<ConfigurationOptions> config,
+                           std::string_view          path = "logging.level");
+
+        template <typename T>
+        LogLevel GetLogLevelFor()
+        {
+            auto it = mLogLevels.find(std::string(refl::type_name<T>()));
+            if (it != mLogLevels.end())
+            {
+                return it->second;
+            }
+
+            it = mLogLevels.find(std::string(refl::type_namespace<T>()));
+            if (it != mLogLevels.end())
+            {
+                return it->second;
+            }
+
+            // Check for partial matches (e.g., if namespaceValue is
+            // "MyApp.Services" check for "MyApp")
+            std::string_view nsStr = refl::type_namespace<T>();
+            for (const auto& [key, level] : mLogLevels)
+            {
+                if (nsStr.size() > key.size() &&
+                    nsStr.compare(0, key.size(), key) == 0 &&
+                    nsStr[key.size()] == '.')
+                {
+                    return level;
+                }
+            }
+
+            return logLevel;
+        }
+
+      private:
+        std::map<std::string, LogLevel> mLogLevels;
     };
 
     class ILogger
@@ -45,6 +95,7 @@ namespace SKIRNIR_NAMESPACE
       public:
         Logger(Ref<LoggerOptions> loggerOptions) : mLoggerOptions(loggerOptions)
         {
+            mLogLevel = mLoggerOptions->GetLogLevelFor<T>();
         }
 
 #ifdef SKIRNIR_USE_FMT
@@ -63,7 +114,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogDebug(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Debug)
+            if (mLogLevel > LogLevel::Debug)
                 return;
 
             fmt::print(fg(fmt::color::forest_green), "[Debug] {} '{}': ",
@@ -78,7 +129,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogTrace(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Trace)
+            if (mLogLevel > LogLevel::Trace)
                 return;
 
             fmt::print(fg(fmt::color::gainsboro), "[Trace] {} '{}': ",
@@ -94,7 +145,7 @@ namespace SKIRNIR_NAMESPACE
         inline void LogInformation(fmt::format_string<TArgs...> fmt,
                                    TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Information)
+            if (mLogLevel > LogLevel::Information)
                 return;
 
             fmt::print(fg(fmt::color::sky_blue), "[Information] {} '{}': ",
@@ -110,7 +161,7 @@ namespace SKIRNIR_NAMESPACE
         inline void LogWarning(fmt::format_string<TArgs...> fmt,
                                TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Warning)
+            if (mLogLevel > LogLevel::Warning)
                 return;
 
             fmt::print(fg(fmt::color::gold), "[Warning] {} '{}': ",
@@ -124,7 +175,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogError(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Error)
+            if (mLogLevel > LogLevel::Error)
                 return;
 
             fmt::print(fg(fmt::color::crimson), "[Error] {} '{}': ",
@@ -139,13 +190,14 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogFatal(fmt::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Error)
+            if (mLogLevel > LogLevel::Error)
                 return;
 
             const auto line = fmt::format(fmt, std::forward<TArgs>(args)...);
 
             fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': {}\n",
-                       std::chrono::system_clock::now(), refl::type_name<T>(), line);
+                       std::chrono::system_clock::now(), refl::type_name<T>(),
+                       line);
 
             throw std::runtime_error(line);
         }
@@ -154,7 +206,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Trace)
+            if (mLogLevel > LogLevel::Trace)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -167,7 +219,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Debug)
+            if (mLogLevel > LogLevel::Debug)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -181,7 +233,7 @@ namespace SKIRNIR_NAMESPACE
         inline void LogInformation(std::format_string<TArgs...> fmt,
                                    TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Information)
+            if (mLogLevel > LogLevel::Information)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -195,7 +247,7 @@ namespace SKIRNIR_NAMESPACE
         inline void LogWarning(std::format_string<TArgs...> fmt,
                                TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Warning)
+            if (mLogLevel > LogLevel::Warning)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -208,7 +260,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogError(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Error)
+            if (mLogLevel > LogLevel::Error)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -221,7 +273,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLoggerOptions->logLevel > LogLevel::Fatal)
+            if (mLogLevel > LogLevel::Fatal)
                 return;
 
             const auto line = std::format(fmt, std::forward<TArgs>(args)...);
@@ -246,6 +298,7 @@ namespace SKIRNIR_NAMESPACE
         }
 #endif
 
+        LogLevel           mLogLevel;
         Ref<LoggerOptions> mLoggerOptions;
     };
 

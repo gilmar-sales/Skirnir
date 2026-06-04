@@ -42,6 +42,12 @@ namespace refl
     }
 
     template <typename T>
+    constexpr std::string_view type_namespace()
+    {
+        return std::meta::display_string_of(std::meta::parent_of(^^T));
+    }
+
+    template <typename T>
     consteval auto first_ctor_params()
     {
         return first_ctor_params<T>();

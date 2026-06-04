@@ -1,5 +1,7 @@
 #include <chrono>
+#include <iostream>
 
+#include <Skirnir/Configuration.hpp>
 #include <Skirnir/Skirnir.hpp>
 
 class IRepository
@@ -18,7 +20,11 @@ class Repository : public IRepository
     Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
     ~Repository() override = default;
 
-    void Add() override { mLogger->LogInformation("Add"); }
+    void Add() override
+    {
+        mLogger->LogDebug("Adding record to repository");
+        mLogger->LogInformation("Add");
+    }
 
   private:
     Ref<skr::Logger<Repository>> mLogger;
@@ -31,7 +37,11 @@ class OtherRepository : public IRepository
     {
     }
 
-    void Add() override { mLogger->LogInformation("Add"); }
+    void Add() override
+    {
+        mLogger->LogTrace("OtherRepository adding record");
+        mLogger->LogInformation("Add");
+    }
 
   private:
     Ref<skr::Logger<OtherRepository>> mLogger;
@@ -47,63 +57,86 @@ class Singleton
     void Add() {}
 };
 
-class ExampleApp : public skr::IApplication
+namespace example
 {
-  public:
-    ExampleApp(Ref<skr::ServiceProvider> rootServiceProvider) :
-        skr::IApplication(rootServiceProvider)
+
+    class ExampleApp : public skr::IApplication
     {
-        mLogger = rootServiceProvider->GetService<skr::Logger<ExampleApp>>();
-    }
-
-    ~ExampleApp() override = default;
-
-    void Run() override
-    {
-        const auto iterationCount = 100'000;
-
-        auto scope = mRootServiceProvider->CreateServiceScope();
-
-        auto begin = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < iterationCount; ++i)
+      public:
+        ExampleApp(Ref<skr::ServiceProvider> rootServiceProvider) :
+            skr::IApplication(rootServiceProvider)
         {
-            const auto repository =
-                scope->GetServiceProvider()->GetService<IRepository>();
+            mLogger =
+                rootServiceProvider->GetService<skr::Logger<ExampleApp>>();
         }
-        auto end = std::chrono::high_resolution_clock::now();
 
-        mLogger->LogInformation(
-            "Time to create {} repositories in scope: {}",
-            iterationCount,
-            std::chrono::duration_cast<std::chrono::milliseconds>(end - begin));
+        ~ExampleApp() override = default;
 
-        begin = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < iterationCount; ++i)
+        void Run() override
         {
-            const auto repository =
-                mRootServiceProvider->GetService<Singleton>();
+            const auto iterationCount = 100'000;
+
+            auto scope = mRootServiceProvider->CreateServiceScope();
+
+            auto begin = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < iterationCount; ++i)
+            {
+                const auto repository =
+                    scope->GetServiceProvider()->GetService<IRepository>();
+            }
+            auto end = std::chrono::high_resolution_clock::now();
+
+            mLogger->LogWarning(
+                "Time to create {} repositories in scope: {}",
+                iterationCount,
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    end - begin));
+
+            begin = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < iterationCount; ++i)
+            {
+                const auto repository =
+                    mRootServiceProvider->GetService<Singleton>();
+            }
+            end = std::chrono::high_resolution_clock::now();
+
+            mLogger->LogInformation(
+                "Time to create {} singletons in root: {}",
+                iterationCount,
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    end - begin));
         }
-        end = std::chrono::high_resolution_clock::now();
 
-        mLogger->LogInformation(
-            "Time to create {} singletons in root: {}",
-            iterationCount,
-            std::chrono::duration_cast<std::chrono::milliseconds>(end - begin));
+      private:
+        Ref<skr::Logger<ExampleApp>> mLogger;
+    };
+} // namespace example
+
+// JSON configuration string for demonstration
+const char* kConfigJson = R"({
+    "logging": {
+        "level": "Warning",
+        "namespaces": {
+            "example": "Debug",
+            "example::ExampleApp": "Fatal",
+        }
     }
-
-  private:
-    Ref<skr::Logger<ExampleApp>> mLogger;
-};
+})";
 
 class ExampleExtension final : public skr::IExtension
 {
   protected:
     void ConfigureServices(skr::ServiceCollection& services) override
     {
+        // Create configuration from JSON
+        auto config =
+            skr::ConfigurationBuilder().AddJsonString(kConfigJson).Build();
+
+        // Create LoggerOptions and configure from JSON
         services
-            .AddSingleton<skr::LoggerOptions>([](skr::ServiceProvider&) {
-                auto options      = skr::MakeRef<skr::LoggerOptions>();
-                options->logLevel = skr::LogLevel::Information;
+            .AddSingleton<skr::LoggerOptions>([config](skr::ServiceProvider&) {
+                auto options = skr::MakeRef<skr::LoggerOptions>();
+                options->ConfigureFrom(config);
                 return options;
             })
             .AddTransient<IRepository, Repository>()
@@ -113,6 +146,10 @@ class ExampleExtension final : public skr::IExtension
 
 int main()
 {
+    std::cout << "=== Skirnir Configuration Example ===" << std::endl;
+    std::cout << "Config: " << kConfigJson << std::endl;
+    std::cout << "=====================================" << std::endl;
+
     auto appBuilder =
         skr::ApplicationBuilder()
             .WithExtension<ExampleExtension>(
@@ -121,7 +158,7 @@ int main()
                 })
             .WithExtension<ExampleExtension>();
 
-    appBuilder.Build<ExampleApp>()->Run();
+    appBuilder.Build<example::ExampleApp>()->Run();
 
     return 0;
 }
