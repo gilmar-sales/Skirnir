@@ -3,20 +3,13 @@
 #include <meta>
 #include <ranges>
 #include <tuple>
-#include <utility>
 
 namespace refl
 {
     namespace _detail
     {
         template <typename T>
-        constexpr std::string_view type_name()
-        {
-            return std::meta::display_string_of(^^T);
-        }
-
-        template <typename T>
-        consteval auto first_ctor()
+        consteval std::meta::info first_ctor()
         {
             auto ctors =
                 std::meta::members_of(^^T,
@@ -27,7 +20,7 @@ namespace refl
         }
 
         template <typename T>
-        consteval auto first_ctor_params()
+        consteval std::vector<std::meta::info> first_ctor_params()
         {
             return std::meta::parameters_of(first_ctor<T>());
         }
@@ -48,13 +41,13 @@ namespace refl
     } // namespace _detail
 
     template <typename T>
-    using first_ctor_params_tuple =
-        typename _detail::first_ctor_params_tuple<T>;
+    using first_ctor_params_tuple = typename std::remove_cv_t<
+        typename[:_detail::first_ctor_params_tuple_m<T>():]>;
 
     template <typename T>
     constexpr std::string_view type_name()
     {
-        return _detail::type_name<T>();
+        return std::meta::display_string_of(^^T);
     }
 
     template <typename T>
@@ -62,6 +55,10 @@ namespace refl
     {
         return _detail::first_ctor_params<T>();
     }
+
+    template <typename T>
+    using first_template_arg_of =
+        typename[:std::meta::template_arguments_of(^^T)[0]:];
 } // namespace refl
 
 // #pragma warning(pop)

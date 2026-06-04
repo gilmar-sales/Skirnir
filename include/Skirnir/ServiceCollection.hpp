@@ -313,8 +313,8 @@ namespace SKIRNIR_NAMESPACE
         {
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
-                  { .factory =
-                        CreateServiceFactory<TService>(refl::first_ctor_params_tuple<TService> {}),
+                  { .factory = CreateServiceFactory<TService>(
+                        refl::first_ctor_params_tuple<TService> {}),
                     .lifetime = lifeTime } });
 
             if constexpr (!std::is_base_of_v<ILogger, TContract>)
@@ -381,20 +381,20 @@ namespace SKIRNIR_NAMESPACE
 
         template <typename TService, typename... Args>
             requires(std::is_constructible_v<TService, Args...>)
-        InternalServiceFactory CreateServiceFactory(std::tuple<Args...> tuple)
+        InternalServiceFactory CreateServiceFactory(std::tuple<Args...>)
         {
-            return InternalServiceFactory(
-                [](ServiceProvider&              serviceProvider,
-                   std::set<ServiceDescription>& servicesDescriptions) {
-                    servicesDescriptions.erase(ServiceDescription {
-                        .id   = GetServiceId<TService>(),
-                        .name = refl::type_name<TService>() });
 
-                    return MakeRef<TService>(
-                        serviceProvider.GetServiceImpl<std::remove_pointer_t<
-                            decltype(Args(nullptr).get())>>(
+            return [](ServiceProvider&              serviceProvider,
+                      std::set<ServiceDescription>& servicesDescriptions) {
+                servicesDescriptions.erase(ServiceDescription {
+                    .id   = GetServiceId<TService>(),
+                    .name = refl::type_name<TService>() });
+
+                return MakeRef<TService>(
+                    serviceProvider
+                        .GetServiceImpl<refl::first_template_arg_of<Args>>(
                             servicesDescriptions)...);
-                });
+            };
         }
 
       private:
