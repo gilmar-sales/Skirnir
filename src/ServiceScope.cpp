@@ -14,6 +14,7 @@ namespace SKIRNIR_NAMESPACE
             mServiceDefinitionMap,
             mSingletonsCache,
             mScopeCache,
+            MakeRef<KeyedServicesCache>(),
             true);
     }
 

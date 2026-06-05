@@ -149,3 +149,91 @@ TEST_F(ServiceProviderSpec, PrintDiagnosticsContainsExpectedText)
     EXPECT_NE(output.find("Transient"), std::string::npos);
     EXPECT_NE(output.find("service#"), std::string::npos);
 }
+
+TEST_F(ServiceProviderSpec, TryGetReturnsNulloptForUnregistered)
+{
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<SingletonService>()
+                  .CreateServiceProvider();
+    auto result = sp->TryGetService<NonExistentService>();
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(ServiceProviderSpec, TryGetReturnsValueForRegistered)
+{
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<SingletonService>()
+                  .CreateServiceProvider();
+    auto result = sp->TryGetService<SingletonService>();
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, sp->GetService<SingletonService>());
+}
+
+TEST_F(ServiceProviderSpec, TryGetReturnsNulloptForRootScoped)
+{
+    auto sp = skr::ServiceCollection()
+                  .AddScoped<ScopedService>()
+                  .CreateServiceProvider();
+    // Resolving a Scoped at the root provider is an error; the non-throwing
+    // path surfaces it as nullopt.
+    auto result = sp->TryGetService<ScopedService>();
+    EXPECT_FALSE(result.has_value());
+}
+
+namespace captive_test
+{
+    class NeedsScoped
+    {
+      public:
+        explicit NeedsScoped(Ref<ScopedService>) {}
+    };
+} // namespace captive_test
+
+TEST_F(ServiceProviderSpec, ValidateOnBuildFlagsCaptiveScopedDependency)
+{
+    using namespace captive_test;
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<NeedsScoped>()
+                  .AddScoped<ScopedService>()
+                  .CreateServiceProvider();
+    EXPECT_THROW(sp->ValidateOnBuild(), std::runtime_error);
+}
+
+TEST_F(ServiceProviderSpec, ValidateOnBuildAllowsScopedDependingOnSingleton)
+{
+    using namespace captive_test;
+    // Reverse direction is fine: a Scoped can hold a Singleton.
+    class ScopedHolder
+    {
+      public:
+        explicit ScopedHolder(Ref<SingletonService>) {}
+    };
+    auto sp = skr::ServiceCollection()
+                  .AddScoped<ScopedHolder>()
+                  .AddSingleton<SingletonService>()
+                  .CreateServiceProvider();
+    // ValidateOnBuild constructs singletons eagerly but only walks singleton
+    // sub-graphs for captive detection, so this passes.
+    EXPECT_NO_THROW(sp->ValidateOnBuild());
+}
+
+TEST_F(ServiceProviderSpec, ValidateOnBuildIgnoresTransients)
+{
+    // Singleton -> Transient -> Singleton: the Transient breaks the chain
+    // and the inner Singleton is available, so construction succeeds and no
+    // captive-dependency error is reported.
+    class Inner
+    {
+    };
+    class TransientHolder
+    {
+      public:
+        explicit TransientHolder(Ref<Inner>) {}
+    };
+    auto sp = skr::ServiceCollection()
+                  .AddSingleton<TransientHolder>()
+                  .AddTransient<TransientHolder>()
+                  .AddSingleton<Inner>()
+                  .CreateServiceProvider();
+    EXPECT_NO_THROW(sp->ValidateOnBuild());
+}

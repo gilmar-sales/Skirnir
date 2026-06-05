@@ -71,6 +71,17 @@ ServiceCollection& AddSingleton<TService>(Ref<TService> element);
 ServiceCollection& AddSingleton<TContract, TService>(Ref<TService> element);
 ```
 
+#### Keyed / Named Registration
+
+Register multiple implementations of one contract distinguished by a
+string key. See [Keyed Services](usage/keyed-services.md).
+
+```cpp
+ServiceCollection& AddKeyedSingleton<TContract, TService>(std::string key);
+ServiceCollection& AddKeyedScoped<TContract, TService>(std::string key);
+ServiceCollection& AddKeyedTransient<TContract, TService>(std::string key);
+```
+
 ### Utility Methods
 
 ```cpp
@@ -89,7 +100,16 @@ template <typename TService>
 Ref<TService> GetService();
 
 template <typename TService>
+std::optional<Ref<TService>> TryGetService();
+
+template <typename TService>
 std::vector<Ref<TService>> GetServices();
+
+template <typename TService>
+Ref<TService> GetKeyedService(std::string_view key);
+
+template <typename TService>
+std::optional<Ref<TService>> TryGetKeyedService(std::string_view key);
 ```
 
 ### Validation and Diagnostics

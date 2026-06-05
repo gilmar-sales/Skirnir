@@ -1,12 +1,40 @@
 #include "Skirnir/ServiceProvider.hpp"
 #include "Skirnir/ServiceScope.hpp"
 
+#include <algorithm>
 #include <iomanip>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 
 namespace SKIRNIR_NAMESPACE
 {
+    namespace
+    {
+        std::optional<LifeTime> LifetimeForId(const ServiceDefinitionMap& map,
+                                              ServiceId                    id)
+        {
+            auto range = map.equal_range(id);
+            if (range.first == range.second)
+                return std::nullopt;
+            return range.first->second.lifetime;
+        }
+
+        std::string LifetimeName(LifeTime lt)
+        {
+            switch (lt)
+            {
+                case LifeTime::Transient:
+                    return "Transient";
+                case LifeTime::Scoped:
+                    return "Scoped";
+                case LifeTime::Singleton:
+                    return "Singleton";
+            }
+            return "?";
+        }
+    } // namespace
+
     Ref<ServiceScope> ServiceProvider::CreateServiceScope() const
     {
         return MakeRef<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
@@ -70,6 +98,39 @@ namespace SKIRNIR_NAMESPACE
                 validate(id);
         }
 
+        // Captive-dependency detection: a Singleton whose transitive
+        // constructor dependencies include a Scoped service. Such a Scoped
+        // instance ends up being captured by the long-lived Singleton,
+        // breaking the lifetime contract and almost always indicating a
+        // bug.
+        std::set<ServiceId> captiveChecked;
+        for (auto& [id, def] : *mServiceDefinitionMap)
+        {
+            if (def.lifetime != LifeTime::Singleton)
+                continue;
+            if (!captiveChecked.insert(id).second)
+                continue;
+
+            for (ServiceId depId : def.ctorDeps)
+            {
+                if (depId == id)
+                    continue;
+
+                auto depLt = LifetimeForId(*mServiceDefinitionMap, depId);
+                if (depLt && *depLt == LifeTime::Scoped)
+                {
+                    std::ostringstream oss;
+                    oss << "Captive dependency: Singleton service#"
+                        << id
+                        << " depends on Scoped service#"
+                        << depId
+                        << " — Scoped services must not be captured by a "
+                           "Singleton.";
+                    errors.push_back(oss.str());
+                }
+            }
+        }
+
         if (!errors.empty())
         {
             std::string message =
@@ -100,24 +161,27 @@ namespace SKIRNIR_NAMESPACE
                 std::distance(range.first, range.second));
             const auto& firstDef = range.first->second;
 
-            const char* lifetime = "?";
-            switch (firstDef.lifetime)
-            {
-                case LifeTime::Transient:
-                    lifetime = "Transient";
-                    break;
-                case LifeTime::Scoped:
-                    lifetime = "Scoped";
-                    break;
-                case LifeTime::Singleton:
-                    lifetime = "Singleton";
-                    break;
-            }
-
-            os << "  [" << lifetime << "] service#" << id;
+            os << "  [" << LifetimeName(firstDef.lifetime) << "] service#"
+               << id;
             if (count > 1)
                 os << " (" << count << " registrations)";
             os << "\n";
+
+            std::size_t idx = 0;
+            for (auto it = range.first; it != range.second; ++it, ++idx)
+            {
+                os << "      registration #" << idx;
+                if (!it->second.key.empty())
+                    os << " key=\"" << it->second.key << "\"";
+                os << ", ctor deps: [";
+                for (std::size_t i = 0; i < it->second.ctorDeps.size(); ++i)
+                {
+                    if (i)
+                        os << ", ";
+                    os << "service#" << it->second.ctorDeps[i];
+                }
+                os << "]\n";
+            }
         }
     }
 } // namespace SKIRNIR_NAMESPACE
