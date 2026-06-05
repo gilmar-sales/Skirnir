@@ -201,6 +201,7 @@ TEST(LoggingSpec, JsonSink_ProducesValidNdjson)
     r.level    = skr::LogLevel::Information;
     r.category = "Cat";
     r.message  = "hello";
+    r.timestamp = std::chrono::system_clock::now();
     sink->Write(r);
     sink->Flush();
 

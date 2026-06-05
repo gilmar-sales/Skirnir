@@ -48,72 +48,6 @@ namespace SKIRNIR_NAMESPACE
             }
             return "?";
         }
-
-        std::string FormatTimestamp(std::chrono::system_clock::time_point tp)
-        {
-            using namespace std::chrono;
-            const auto t = system_clock::to_time_t(tp);
-            const auto us =
-                duration_cast<microseconds>(tp.time_since_epoch()) % seconds(1);
-
-            std::tm tm {};
-#ifdef _WIN32
-            localtime_s(&tm, &t);
-#else
-            localtime_r(&t, &tm);
-#endif
-
-            std::ostringstream oss;
-            oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << '.'
-                << std::setw(6) << std::setfill('0') << us.count();
-            return oss.str();
-        }
-
-        void AppendEscapedJson(std::string& out, std::string_view s)
-        {
-            out.push_back('"');
-            for (char c : s)
-            {
-                switch (c)
-                {
-                    case '"':
-                        out += "\\\"";
-                        break;
-                    case '\\':
-                        out += "\\\\";
-                        break;
-                    case '\b':
-                        out += "\\b";
-                        break;
-                    case '\f':
-                        out += "\\f";
-                        break;
-                    case '\n':
-                        out += "\\n";
-                        break;
-                    case '\r':
-                        out += "\\r";
-                        break;
-                    case '\t':
-                        out += "\\t";
-                        break;
-                    default:
-                        if (static_cast<unsigned char>(c) < 0x20)
-                        {
-                            char buf[8];
-                            std::snprintf(buf, sizeof(buf), "\\u%04x",
-                                          static_cast<unsigned char>(c));
-                            out += buf;
-                        }
-                        else
-                        {
-                            out.push_back(c);
-                        }
-                        break;
-                }
-            }
-            out.push_back('"');
-        }
     } // namespace
 
     // ------------------------------------------------------------------
@@ -127,8 +61,10 @@ namespace SKIRNIR_NAMESPACE
     void ConsoleSink::Write(const LogRecord& r)
     {
         const std::string prefix =
-            std::format("[{}] {} '{}': ", LevelName(r.level),
-                        FormatTimestamp(r.timestamp), std::string(r.category));
+            std::format("[{}] {} '{}': ",
+                        LevelName(r.level),
+                        r.timestamp,
+                        r.category);
 
         std::string scopesStr;
         if (!r.scopes.empty())
@@ -180,8 +116,8 @@ namespace SKIRNIR_NAMESPACE
     void FileSink::Write(const LogRecord& r)
     {
         std::ostringstream oss;
-        oss << '[' << LevelName(r.level) << "] " << FormatTimestamp(r.timestamp)
-            << " '" << r.category << "': ";
+        oss << '[' << LevelName(r.level) << "] " << r.timestamp << " '"
+            << r.category << "': ";
         if (!r.scopes.empty())
         {
             oss << '[';
