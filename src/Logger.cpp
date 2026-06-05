@@ -1,5 +1,6 @@
 #include "Skirnir/Logger.hpp"
 #include "Skirnir/Configuration.hpp"
+#include "Skirnir/LogScope.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -8,6 +9,15 @@
 
 namespace SKIRNIR_NAMESPACE
 {
+    namespace
+    {
+        std::vector<std::string>& ScopeStack()
+        {
+            thread_local std::vector<std::string> stack;
+            return stack;
+        }
+    } // namespace
+
     static LogLevel ParseLogLevel(std::string_view level)
     {
         if (level == "Debug" || level == "debug" || level == "DEBUG")
@@ -62,5 +72,41 @@ namespace SKIRNIR_NAMESPACE
                     return;
                 mLogLevels[std::string(key)] = ParseLogLevel(sv);
             });
+    }
+
+    void LoggerOptions::Dispatch(const LogRecord& record)
+    {
+        if (mSinks.empty())
+        {
+            mSinks.push_back(MakeRef<ConsoleSink>());
+        }
+        
+        for (auto& sink : mSinks)
+        {
+            sink->Write(record);
+        }
+    }
+
+    void LoggerOptions::PushScope(std::string name)
+    {
+        ScopeStack().push_back(std::move(name));
+    }
+
+    void LoggerOptions::PopScope()
+    {
+        auto& stack = ScopeStack();
+        if (!stack.empty())
+            stack.pop_back();
+    }
+
+    std::vector<std::string_view> LoggerOptions::CurrentScopes() const
+    {
+        const auto& stack = ScopeStack();
+        return {stack.begin(), stack.end()};
+    }
+
+    Ref<LogScope> LoggerOptions::BeginScope(std::string name)
+    {
+        return MakeRef<LogScope>(shared_from_this(), std::move(name));
     }
 } // namespace SKIRNIR_NAMESPACE

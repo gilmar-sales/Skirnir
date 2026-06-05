@@ -159,30 +159,93 @@ Ref<ServiceProvider> GetServiceProvider() const;
 | Warning     | Warning messages                    |
 | Error       | Error messages                      |
 | Fatal       | Fatal errors (throws exception)     |
+| None        | Disables all logging                |
 
 ### Logging Methods
 
+Format-string API (existing):
+
 ```cpp
 template <typename... TArgs>
-void LogDebug(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void LogTrace(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void LogInformation(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogInformation(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void LogWarning(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogWarning(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void LogError(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogError(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void LogFatal(fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args);
 
 template <typename... TArgs>
-void Assert(bool assertion, fmt::format_string<TArgs...> fmt, TArgs&&... args);
+void Assert(bool assertion, std::format_string<TArgs...> fmt, TArgs&&... args);
+```
+
+---
+
+## LogRecord
+
+A complete log entry, ready to be handed to a sink.
+
+```cpp
+struct LogRecord
+{
+    LogLevel                              level;
+    std::chrono::system_clock::time_point timestamp;
+    std::string_view                      category;
+    std::string                           message;
+    std::vector<std::string_view>         scopes;
+    std::source_location                  location;
+};
+```
+
+---
+
+## ILogSink
+
+```cpp
+class ILogSink
+{
+  public:
+    virtual ~ILogSink() = default;
+    virtual void Write(const LogRecord& record) = 0;
+    virtual void Flush() {}
+};
+```
+
+### Built-in Sinks
+
+| Class         | Constructor                                          |
+|---------------|------------------------------------------------------|
+| `NullSink`    | `NullSink()`                                         |
+| `ConsoleSink` | `ConsoleSink(bool useColors = true)`                 |
+| `FileSink`    | `FileSink(path, bool autoFlush = true)`              |
+| `JsonSink`    | `JsonSink(std::ostream&)` or `JsonSink(path)`        |
+| `AsyncSink`   | `AsyncSink(Ref<ILogSink> inner, size_t capacity)`    |
+
+`AsyncSink::DroppedCount()` returns the number of records dropped due
+to a full queue.
+
+---
+
+## LogScope
+
+RAII handle returned by `LoggerOptions::BeginScope`.
+
+```cpp
+class LogScope
+{
+  public:
+    const std::string& Name() const noexcept;
+    // Non-copyable, non-movable.
+};
 ```
 
 ---
@@ -194,12 +257,27 @@ Configuration class for logging behavior:
 ```cpp
 class LoggerOptions {
     LogLevel logLevel;  // Default: Debug (debug build), Trace (release)
+
+    // Sink management
+    LoggerOptions& AddSink(Ref<ILogSink> sink);
+    const std::vector<Ref<ILogSink>>& Sinks() const noexcept;
+    void ClearSinks();
+
+    // Dispatch (internal — called by Logger<T>)
+    void Dispatch(const LogRecord& record);
+
+    // Scopes
+    Ref<LogScope> BeginScope(std::string name);
+
+    // Configuration
     void ConfigureFrom(Ref<ConfigurationOptions> config,
                        std::string_view path = "logging.logLevel.default");
+
+    template <typename T> LogLevel GetLogLevelFor();
 };
 ```
 
-Inject `Ref<LoggerOptions>` to customize logging level.
+Inject `Ref<LoggerOptions>` to customize logging.
 
 ---
 

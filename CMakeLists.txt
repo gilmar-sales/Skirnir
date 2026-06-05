@@ -10,27 +10,29 @@ set(CMAKE_CXX_STANDARD 26)
 option(SKIRNIR_USE_FMT "Use the fmt library for logging" OFF)
 option(SKIRNIR_USE_SIMDJSON "Use simdjson for configuration parsing" ON)
 
-if (NOT TARGET skirnir)
+if(NOT TARGET skirnir)
 
   include(FetchContent)
 
   add_library(skirnir
-            src/Configuration.cpp
-            src/Logger.cpp
-            src/ServiceScope.cpp
-            src/ServiceProvider.cpp)
+    src/Configuration.cpp
+    src/LogScope.cpp
+    src/LogSinks.cpp
+    src/Logger.cpp
+    src/ServiceScope.cpp
+    src/ServiceProvider.cpp)
 
   add_library(skirnir::skirnir ALIAS skirnir)
 
-  if (${SKIRNIR_USE_SIMDJSON})
+  if(${SKIRNIR_USE_SIMDJSON})
     target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_SIMDJSON)
 
     FetchContent_Declare(
-                simdjson
-                GIT_REPOSITORY "https://github.com/simdjson/simdjson.git"
-                GIT_TAG "v4.6.4"
-                GIT_SHALLOW TRUE
-        )
+      simdjson
+      GIT_REPOSITORY "https://github.com/simdjson/simdjson.git"
+      GIT_TAG "v4.6.4"
+      GIT_SHALLOW TRUE
+    )
     set(SIMDJSON_DEVELOPER_MODE OFF CACHE BOOL "" FORCE)
     set(SIMDJSON_BUILD_STATIC_LIB OFF CACHE BOOL "" FORCE)
     set(SIMDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -40,50 +42,51 @@ if (NOT TARGET skirnir)
 
     target_link_libraries(skirnir simdjson::simdjson)
     target_include_directories(skirnir PRIVATE ${simdjson_SOURCE_DIR}/include)
-  endif ()
+  endif()
 
-  if (${SKIRNIR_USE_FMT})
+  if(${SKIRNIR_USE_FMT})
     target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_FMT)
 
     FetchContent_Declare(
-                fmt
-                GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-                GIT_TAG "12.1.0"
-        )
+      fmt
+      GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+      GIT_TAG "12.1.0"
+    )
     FetchContent_MakeAvailable(fmt)
 
     target_link_libraries(skirnir fmt::fmt)
-  elseif (CMAKE_COMPILER_IS_GNUCXX)
+  elseif(CMAKE_COMPILER_IS_GNUCXX)
     target_link_libraries(skirnir stdc++exp)
-  endif ()
-endif ()
+  endif()
+endif()
 
 target_include_directories(skirnir PUBLIC include)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(skirnir PUBLIC -freflection)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(skirnir PUBLIC /experimental:reflection)
-endif ()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(skirnir PUBLIC -freflection)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  target_compile_options(skirnir PUBLIC /experimental:reflection)
+endif()
 
 install(TARGETS skirnir)
 
 install(DIRECTORY include/
-        DESTINATION include
+  DESTINATION include
 )
 
 option(BUILD_SKIRNIR_EXAMPLES OFF CACHE)
 option(BUILD_SKIRNIR_TESTS OFF CACHE)
 
-if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
   set(BUILD_SKIRNIR_EXAMPLES ON)
   set(BUILD_SKIRNIR_TESTS ON)
-endif ()
+endif()
 
-if (${BUILD_SKIRNIR_EXAMPLES})
+if(${BUILD_SKIRNIR_EXAMPLES})
   add_subdirectory(examples)
-endif ()
+endif()
 
-if (${BUILD_SKIRNIR_TESTS})
+if(${BUILD_SKIRNIR_TESTS})
+  enable_testing()
   add_subdirectory(test)
-endif ()
+endif()

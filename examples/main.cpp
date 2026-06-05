@@ -2,6 +2,8 @@
 #include <iostream>
 
 #include <Skirnir/Configuration.hpp>
+#include <Skirnir/LogScope.hpp>
+#include <Skirnir/LoggingExtension.hpp>
 #include <Skirnir/Skirnir.hpp>
 
 class IRepository
@@ -76,6 +78,9 @@ namespace example
         {
             const auto iterationCount = 100'000;
 
+            auto options = mRootServiceProvider->GetService<skr::LoggerOptions>();
+            auto requestScope = options->BeginScope("benchmark");
+
             auto scope = mRootServiceProvider->CreateServiceScope();
 
             auto begin = std::chrono::high_resolution_clock::now();
@@ -105,6 +110,8 @@ namespace example
                 iterationCount,
                 std::chrono::duration_cast<std::chrono::milliseconds>(
                     end - begin));
+
+            mLogger->LogInformation("benchmark run complete");
         }
 
       private:
@@ -118,7 +125,7 @@ const char* kConfigJson = R"({
         "logLevel": {
             "default": "Warning",
             "example": "Debug",
-            "example::ExampleApp": "Fatal"
+            "example::ExampleApp": "Information"
         }
     }
 })";
@@ -156,7 +163,11 @@ int main()
                 [](ExampleExtension& exampleExtension) {
 
                 })
-            .WithExtension<ExampleExtension>();
+            .WithExtension<ExampleExtension>()
+            .WithExtension<skr::LoggingExtension>(
+                [](skr::LoggingExtension& logging) {
+                    logging.AddConsoleSink().AddJsonSink("app.ndjson");
+                });
 
     appBuilder.Build<example::ExampleApp>()->Run();
 

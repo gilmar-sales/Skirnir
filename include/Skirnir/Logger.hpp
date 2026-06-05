@@ -1,39 +1,31 @@
 #pragma once
 
 #include "Common.hpp"
+#include "LogLevel.hpp"
+#include "LogRecord.hpp"
 #include "Reflection.hpp"
 
 #include <chrono>
+#include <format>
 #include <map>
 #include <optional>
+#include <print>
 #include <string>
 #include <string_view>
-
-#ifdef SKIRNIR_USE_FMT
-    #include <fmt/chrono.h>
-    #include <fmt/color.h>
-    #include <fmt/core.h>
-#else
-    #include <format>
-    #include <print>
-#endif
 
 namespace SKIRNIR_NAMESPACE
 {
     class ConfigurationOptions;
+    class LogScope;
 
-    enum class LogLevel
-    {
-        Debug,
-        Trace,
-        Information,
-        Warning,
-        Error,
-        Fatal,
-        None
-    };
-
-    class LoggerOptions
+    /**
+     * @brief Configuration for the logging subsystem.
+     *
+     * Holds the default level, namespace-specific level overrides, and the
+     * list of sinks that receive every @c LogRecord dispatched by any
+     * @c Logger<T> in the application.
+     */
+    class LoggerOptions : public std::enable_shared_from_this<LoggerOptions>
     {
       public:
 #ifdef NDEBUG
@@ -53,13 +45,16 @@ namespace SKIRNIR_NAMESPACE
         template <typename T>
         LogLevel GetLogLevelFor()
         {
-            auto it = mLogLevels.find(std::string(refl::type_name<T>()));
+            constexpr auto typeName = refl::type_name<T>();
+            constexpr auto typeNs   = refl::type_namespace<T>();
+
+            auto it = mLogLevels.find(std::string(typeName));
             if (it != mLogLevels.end())
             {
                 return it->second;
             }
 
-            it = mLogLevels.find(std::string(refl::type_namespace<T>()));
+            it = mLogLevels.find(std::string(typeNs));
             if (it != mLogLevels.end())
             {
                 return it->second;
@@ -67,12 +62,11 @@ namespace SKIRNIR_NAMESPACE
 
             // Check for partial matches (e.g., if namespaceValue is
             // "MyApp.Services" check for "MyApp")
-            std::string_view nsStr = refl::type_namespace<T>();
             for (const auto& [key, level] : mLogLevels)
             {
-                if (nsStr.size() > key.size() &&
-                    nsStr.compare(0, key.size(), key) == 0 &&
-                    nsStr[key.size()] == '.')
+                if (typeNs.size() > key.size() &&
+                    typeNs.compare(0, key.size(), key) == 0 &&
+                    typeNs[key.size()] == '.')
                 {
                     return level;
                 }
@@ -81,8 +75,59 @@ namespace SKIRNIR_NAMESPACE
             return logLevel;
         }
 
+        // ----- Sink management ----------------------------------------
+
+        /**
+         * @brief Appends a sink. Returns *this for chaining.
+         */
+        LoggerOptions& AddSink(Ref<ILogSink> sink)
+        {
+            if (sink)
+                mSinks.push_back(std::move(sink));
+            return *this;
+        }
+
+        const std::vector<Ref<ILogSink>>& Sinks() const noexcept
+        {
+            return mSinks;
+        }
+
+        /**
+         * @brief Removes every configured sink. Useful when an
+         *        extension wants to wrap the existing sinks in an
+         *        @c AsyncSink.
+         */
+        void ClearSinks()
+        {
+            mSinks.clear();
+        }
+
+        /**
+         * @brief Dispatches a record to every configured sink.
+         *
+         * Lazily appends a @c ConsoleSink the first time it is called with
+         * an empty sink list, so existing applications that do not
+         * configure logging keep producing output on the console.
+         */
+        void Dispatch(const LogRecord& record);
+
+        // ----- Scope management ---------------------------------------
+
+        /**
+         * @brief Begins a log scope on the current thread. Returns a
+         *        RAII handle that pops the scope on destruction.
+         */
+        Ref<LogScope> BeginScope(std::string name);
+
+        /// @cond INTERNAL
+        void                       PushScope(std::string name);
+        void                       PopScope();
+        std::vector<std::string_view> CurrentScopes() const;
+        /// @endcond
+
       private:
         std::map<std::string, LogLevel> mLogLevels;
+        std::vector<Ref<ILogSink>>      mSinks;
     };
 
     class ILogger
@@ -93,210 +138,96 @@ namespace SKIRNIR_NAMESPACE
     class Logger : public ILogger
     {
       public:
-        Logger(Ref<LoggerOptions> loggerOptions) : mLoggerOptions(loggerOptions)
+        Logger(Ref<LoggerOptions> loggerOptions) :
+            mLoggerOptions(std::move(loggerOptions))
         {
             mLogLevel = mLoggerOptions->GetLogLevelFor<T>();
         }
 
-#ifdef SKIRNIR_USE_FMT
-        template <typename... TArgs>
-        inline void Assert(bool assertion, fmt::format_string<TArgs...> fmt,
-                           TArgs&&... args)
-        {
-    #ifndef NDEBUG
-            if (!assertion)
-            {
-                LogFatal(fmt, std::forward<TArgs>(args)...);
-            }
-    #endif
-        }
-
-        template <typename... TArgs>
-        inline void LogDebug(fmt::format_string<TArgs...> fmt, TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Debug)
-                return;
-
-            fmt::print(fg(fmt::color::forest_green), "[Debug] {} '{}': ",
-                       std::chrono::system_clock::now(), refl::type_name<T>());
-
-            fmt::print(fg(fmt::color::forest_green), fmt,
-                       std::forward<TArgs>(args)...);
-
-            fmt::print("\n");
-        }
-
-        template <typename... TArgs>
-        inline void LogTrace(fmt::format_string<TArgs...> fmt, TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Trace)
-                return;
-
-            fmt::print(fg(fmt::color::gainsboro), "[Trace] {} '{}': ",
-                       std::chrono::system_clock::now(), refl::type_name<T>());
-
-            fmt::print(fg(fmt::color::gainsboro), fmt,
-                       std::forward<TArgs>(args)...);
-
-            fmt::print("\n");
-        }
-
-        template <typename... TArgs>
-        inline void LogInformation(fmt::format_string<TArgs...> fmt,
-                                   TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Information)
-                return;
-
-            fmt::print(fg(fmt::color::sky_blue), "[Information] {} '{}': ",
-                       std::chrono::system_clock::now(), refl::type_name<T>());
-
-            fmt::print(fg(fmt::color::sky_blue), fmt,
-                       std::forward<TArgs>(args)...);
-
-            fmt::print("\n");
-        }
-
-        template <typename... TArgs>
-        inline void LogWarning(fmt::format_string<TArgs...> fmt,
-                               TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Warning)
-                return;
-
-            fmt::print(fg(fmt::color::gold), "[Warning] {} '{}': ",
-                       std::chrono::system_clock::now(), refl::type_name<T>());
-
-            fmt::print(fg(fmt::color::gold), fmt, std::forward<TArgs>(args)...);
-
-            fmt::print("\n");
-        }
-
-        template <typename... TArgs>
-        inline void LogError(fmt::format_string<TArgs...> fmt, TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Error)
-                return;
-
-            fmt::print(fg(fmt::color::crimson), "[Error] {} '{}': ",
-                       std::chrono::system_clock::now(), refl::type_name<T>());
-
-            fmt::print(fg(fmt::color::crimson), fmt,
-                       std::forward<TArgs>(args)...);
-
-            fmt::print("\n");
-        }
-
-        template <typename... TArgs>
-        inline void LogFatal(fmt::format_string<TArgs...> fmt, TArgs&&... args)
-        {
-            if (mLogLevel > LogLevel::Error)
-                return;
-
-            const auto line = fmt::format(fmt, std::forward<TArgs>(args)...);
-
-            fmt::print(fg(fmt::color::crimson), "[Fatal] {} '{}': {}\n",
-                       std::chrono::system_clock::now(), refl::type_name<T>(),
-                       line);
-
-            throw std::runtime_error(line);
-        }
-#else
-
         template <typename... TArgs>
         inline void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Trace)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Trace] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
+            DispatchImpl(LogLevel::Trace, std::source_location::current(),
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Debug)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Debug] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
+            DispatchImpl(LogLevel::Debug, std::source_location::current(),
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogInformation(std::format_string<TArgs...> fmt,
                                    TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Information)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Information] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
+            DispatchImpl(LogLevel::Information, std::source_location::current(),
+                          fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogWarning(std::format_string<TArgs...> fmt,
                                TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Warning)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Warning] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
+            DispatchImpl(LogLevel::Warning, std::source_location::current(),
+                          fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogError(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Error)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Error] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
+            DispatchImpl(LogLevel::Error, std::source_location::current(),
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            if (mLogLevel > LogLevel::Fatal)
-                return;
-
-            const auto line = std::format(fmt, std::forward<TArgs>(args)...);
-
-            std::println("[Fatal] {} '{}': {}",
-                         std::chrono::system_clock::now(), refl::type_name<T>(),
-                         line);
-
-            throw std::runtime_error(line);
+            DispatchImpl(LogLevel::Fatal, std::source_location::current(),
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void Assert(bool assertion, std::format_string<TArgs...> fmt,
+        inline void Assert(bool                       assertion,
+                           std::format_string<TArgs...> fmt,
                            TArgs&&... args)
         {
-    #ifndef NDEBUG
+#ifndef NDEBUG
             if (!assertion)
             {
                 LogFatal(fmt, std::forward<TArgs>(args)...);
             }
-    #endif
-        }
 #endif
+        }
+
+      private:
+        template <typename... TArgs>
+        inline void DispatchImpl(LogLevel                     lvl,
+                                 std::source_location         loc,
+                                 std::format_string<TArgs...> fmt,
+                                 TArgs&&... args)
+        {
+            if (mLogLevel > lvl)
+                return;
+
+            std::string message = std::format(fmt, std::forward<TArgs>(args)...);
+
+            LogRecord record;
+            record.level     = lvl;
+            record.timestamp = std::chrono::system_clock::now();
+            record.category  = refl::type_name<T>();
+            record.message   = std::move(message);
+            record.scopes    = mLoggerOptions->CurrentScopes();
+            record.location  = loc;
+
+            mLoggerOptions->Dispatch(record);
+
+            if (lvl == LogLevel::Fatal)
+            {
+                throw std::runtime_error(record.message);
+            }
+        }
 
         LogLevel           mLogLevel;
         Ref<LoggerOptions> mLoggerOptions;

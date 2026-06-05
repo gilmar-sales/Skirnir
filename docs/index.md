@@ -14,10 +14,10 @@ Skirnir provides an IoC (Inversion of Control) Container for dependency injectio
 - **Configuration**: Strongly-typed JSON configuration with `Bind<T>()`, typed getters, sub-sections, and source chaining
 - **Diagnostics**: `ValidateOnBuild()` and `PrintDiagnostics(std::ostream&)` for early failure detection
 - **Circular Dependency Detection**: Detects and reports circular dependencies
-- **Logging**: Built-in logging support with `skr::Logger<T>`
+- **Logging**: Built-in logging with pluggable sinks (`ConsoleSink`, `FileSink`, `JsonSink`, `AsyncSink`) and scopes/correlation IDs
 - **Reflection**: Uses compile-time type introspection via the C++ Type Loophole to extract service metadata
 - **Applications**: Structured application model with `IApplication` and `ApplicationBuilder`
-- **Extensions**: Modular service registration via composable extensions
+- **Extensions**: Modular service registration via composable extensions (includes a ready-made `LoggingExtension`)
 
 ## Quick Start
 
