@@ -32,7 +32,6 @@ namespace SKIRNIR_NAMESPACE
         std::string_view                      category {};
         std::string                           message {};
         std::vector<std::string_view>         scopes {};
-        std::source_location                  location {};
     };
 
     /**

@@ -219,7 +219,6 @@ namespace SKIRNIR_NAMESPACE
             record.category  = refl::type_name<T>();
             record.message   = std::move(message);
             record.scopes    = mLoggerOptions->CurrentScopes();
-            record.location  = loc;
 
             mLoggerOptions->Dispatch(record);
 

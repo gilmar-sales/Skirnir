@@ -3,9 +3,8 @@
 #include "Common.hpp"
 #include "Reflection.hpp"
 
-#ifdef SKIRNIR_USE_SIMDJSON
-    #include <simdjson.h>
-#endif
+#define SIMDJSON_STATIC_REFLECTION 1
+#include <simdjson.h>
 
 #include <filesystem>
 #include <fstream>
@@ -19,22 +18,9 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-#ifdef SKIRNIR_USE_SIMDJSON
     using ConfigurationElement = simdjson::dom::element;
     using ConfigurationObject  = simdjson::dom::object;
     using ConfigurationArray   = simdjson::dom::array;
-#else
-    // Lightweight placeholder; new API is only available when simdjson is on.
-    struct ConfigurationElement
-    {
-    };
-    struct ConfigurationObject
-    {
-    };
-    struct ConfigurationArray
-    {
-    };
-#endif
 
     /**
      * @brief Source of configuration data, producing a parsed JSON tree.
