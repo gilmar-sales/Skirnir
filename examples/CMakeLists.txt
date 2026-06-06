@@ -1,4 +1,4 @@
-add_executable(SimpleInjection main.cpp)
+add_executable(SimpleInjection simple_injection/main.cpp)
 add_executable(MultiImpl multi_impl/main.cpp)
 add_executable(OptionsBinding options_binding/main.cpp)
 
