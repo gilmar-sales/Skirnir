@@ -3,6 +3,7 @@
 #include <Skirnir/Configuration.hpp>
 #include <Skirnir/LogRecord.hpp>
 #include <Skirnir/LogScope.hpp>
+#include <Skirnir/LogSinks.hpp>
 #include <Skirnir/Logger.hpp>
 
 #include <atomic>

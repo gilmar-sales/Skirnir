@@ -1,6 +1,7 @@
 #include "Skirnir/Logger.hpp"
 #include "Skirnir/Configuration.hpp"
 #include "Skirnir/LogScope.hpp"
+#include "Skirnir/LogSinks.hpp"
 
 #include <algorithm>
 #include <cstring>

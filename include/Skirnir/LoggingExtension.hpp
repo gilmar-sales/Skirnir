@@ -2,6 +2,7 @@
 
 #include "Skirnir/Extension.hpp"
 #include "Skirnir/LogRecord.hpp"
+#include "Skirnir/LogSinks.hpp"
 #include "Skirnir/Logger.hpp"
 
 #include <cstddef>

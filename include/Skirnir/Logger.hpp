@@ -2,6 +2,7 @@
 
 #include "LogLevel.hpp"
 #include "LogRecord.hpp"
+#include "LogSinks/ILogSink.hpp"
 #include "Reflection.hpp"
 
 #include <chrono>
