@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ranges>
 
-#include <Skirnir/Configuration.hpp>
+#include <Skirnir/Skirnir.hpp>
 
 struct DatabaseOptions
 {
@@ -9,6 +9,31 @@ struct DatabaseOptions
     int         port    = 5432;
     bool        ssl     = false;
     double      timeout = 30.0;
+};
+
+class OptionsBindingApp : public skr::IApplication
+{
+  public:
+    OptionsBindingApp(
+        const skr::Arc<skr::ServiceProvider>& rootServiceProvider) :
+        IApplication(rootServiceProvider),
+        mDataBaseOptions(rootServiceProvider->GetService<DatabaseOptions>()),
+        mLogger(
+            rootServiceProvider->GetService<skr::Logger<OptionsBindingApp>>())
+    {
+    }
+
+    void Run() override
+    {
+        mLogger->LogInformation("host={}", mDataBaseOptions->host);
+        mLogger->LogInformation("port={}", mDataBaseOptions->port);
+        mLogger->LogInformation("ssl={}", mDataBaseOptions->ssl);
+        mLogger->LogInformation("timeout={}", mDataBaseOptions->timeout);
+    }
+
+  private:
+    skr::Arc<DatabaseOptions>                mDataBaseOptions;
+    skr::Arc<skr::Logger<OptionsBindingApp>> mLogger;
 };
 
 int main()
@@ -22,12 +47,20 @@ int main()
         }
     })";
 
-    auto config = skr::ConfigurationBuilder().AddJsonString(json).Build();
-    auto db     = config->Bind<DatabaseOptions>("Database");
+    auto builder = skr::ApplicationBuilder().WithConfiguration(
+        [&](skr::ConfigurationBuilder& configurationBuilder) {
+            configurationBuilder.AddJsonString(json);
+        });
 
-    std::cout << "host=" << db.host << "\n";
-    std::cout << "port=" << db.port << "\n";
-    std::cout << "ssl=" << std::boolalpha << db.ssl << "\n";
-    std::cout << "timeout=" << db.timeout << "\n";
+    builder.GetServiceCollection()->AddSingleton<DatabaseOptions>(
+        [](skr::ServiceProvider& serviceProvider) {
+            return serviceProvider.GetService<skr::ConfigurationOptions>()
+                ->Bind<DatabaseOptions>("Database");
+        });
+
+    auto app = builder.Build<OptionsBindingApp>();
+
+    app->Run();
+
     return 0;
 }

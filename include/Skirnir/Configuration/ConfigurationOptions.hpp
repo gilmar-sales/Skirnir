@@ -65,9 +65,9 @@ namespace SKIRNIR_NAMESPACE
          * T must be default-constructible
          */
         template <typename T>
-        T Bind(std::string_view section = "") const
+        Arc<T> Bind(std::string_view section = "") const
         {
-            T                   result {};
+            auto                result = MakeArc<T>();
             ConfigurationObject obj;
 
             if (section.empty())
@@ -94,9 +94,10 @@ namespace SKIRNIR_NAMESPACE
                 constexpr auto name = std::meta::identifier_of(member);
                 if constexpr (name.size() > 0)
                 {
-                    reader.TryGet(name, result.[:member:]);
+                    reader.TryGet(name, result->[:member:]);
                 }
             }
+
             return result;
         }
 

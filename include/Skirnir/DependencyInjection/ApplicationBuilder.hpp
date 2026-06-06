@@ -8,6 +8,7 @@
 #include "Skirnir/Common/ConstructorArgumentTraits.hpp"
 #include "Skirnir/Common/Keyed.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
+#include "Skirnir/Configuration.hpp"
 #include "Skirnir/DependencyInjection/Application.hpp"
 #include "Skirnir/DependencyInjection/Extension.hpp"
 
@@ -17,7 +18,9 @@ namespace SKIRNIR_NAMESPACE
     class ApplicationBuilder
     {
       public:
-        ApplicationBuilder() : mServiceCollection(MakeArc<ServiceCollection>())
+        ApplicationBuilder() :
+            mServiceCollection(MakeArc<ServiceCollection>()),
+            mConfigurationBuilder(MakeArc<ConfigurationBuilder>())
         {
         }
 
@@ -66,6 +69,14 @@ namespace SKIRNIR_NAMESPACE
             return *this;
         }
 
+        ApplicationBuilder& WithConfiguration(
+            std::function<void(ConfigurationBuilder&)> configureFunc)
+        {
+            configureFunc(*mConfigurationBuilder);
+
+            return *this;
+        }
+
         /**
          * @brief Builds and returns an application instance.
          *
@@ -80,6 +91,8 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_base_of_v<IApplication, T>)
         Arc<T> Build()
         {
+            mServiceCollection->AddSingleton(mConfigurationBuilder->Build());
+
             for (const auto extension : mExtensions | std::views::values)
                 extension->ConfigureServices(*mServiceCollection);
 
@@ -116,6 +129,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         Arc<ServiceCollection>                 mServiceCollection;
+        Arc<ConfigurationBuilder>              mConfigurationBuilder;
         std::map<ExtensionId, Arc<IExtension>> mExtensions;
     };
 

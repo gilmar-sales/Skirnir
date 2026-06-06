@@ -2,13 +2,12 @@
 #include <string>
 #include <vector>
 
-#include <Skirnir/Configuration.hpp>
 #include <Skirnir/Skirnir.hpp>
 
 class IPlugin
 {
   public:
-    virtual ~IPlugin() = default;
+    virtual ~IPlugin()               = default;
     virtual std::string Name() const = 0;
 };
 
@@ -51,7 +50,10 @@ class PluginHost
 class MultiImplApp : public skr::IApplication
 {
   public:
-    using IApplication::IApplication;
+    MultiImplApp(const skr::Arc<skr::ServiceProvider>& rootServiceProvider) :
+        IApplication(rootServiceProvider)
+    {
+    }
 
     void Run() override
     {
@@ -63,23 +65,17 @@ class MultiImplApp : public skr::IApplication
 
 int main()
 {
-    auto sc = skr::ServiceCollection()
-                  .AddTransient<IPlugin, PluginA>()
-                  .AddTransient<IPlugin, PluginB>()
-                  .AddTransient<IPlugin, PluginC>()
-                  .AddTransient<PluginHost>();
+    auto builder = skr::ApplicationBuilder();
 
-    auto sp = sc.CreateServiceProvider();
+    builder.GetServiceCollection()
+        ->AddTransient<IPlugin, PluginA>()
+        .AddTransient<IPlugin, PluginB>()
+        .AddTransient<IPlugin, PluginC>()
+        .AddTransient<PluginHost>();
 
-    // Single resolution returns the first registration.
-    auto first = sp->GetService<IPlugin>();
-    std::cout << "First: " << first->Name() << "\n";
+    auto app = builder.Build<MultiImplApp>();
 
-    // Multi resolution returns all registrations.
-    auto all = sp->GetServices<IPlugin>();
-    std::cout << "All (" << all.size() << "):\n";
-    for (const auto& p : all)
-        std::cout << "  - " << p->Name() << "\n";
+    app->Run();
 
     return 0;
 }

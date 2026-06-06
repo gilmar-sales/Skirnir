@@ -19,7 +19,6 @@
 #include "Skirnir/DependencyInjection/ServiceProvider.hpp"
 #include "Skirnir/Logging/Logger.hpp"
 
-
 namespace SKIRNIR_NAMESPACE
 {
 
@@ -459,9 +458,9 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-        void AddServiceWithInstance(Arc<TService>   instance,
-                                    const LifeTime  lifeTime,
-                                    std::string     key = {})
+        void AddServiceWithInstance(Arc<TService>  instance,
+                                    const LifeTime lifeTime,
+                                    std::string    key = {})
         {
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
