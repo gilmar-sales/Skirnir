@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <Skirnir/Configuration.hpp>
-#include <Skirnir/Logger.hpp>
+#include <Skirnir/Logging/Logger.hpp>
 
 class Unknown
 {

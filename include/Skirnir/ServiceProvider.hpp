@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Logger.hpp"
+#include "Logging/Logger.hpp"
 #include "Reflection.hpp"
 #include "ServiceId.hpp"
 

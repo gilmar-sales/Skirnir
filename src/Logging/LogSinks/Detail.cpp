@@ -1,6 +1,6 @@
 #include "Detail.hpp"
 
-#include "Skirnir/LogLevel.hpp"
+#include "Skirnir/Logging/LogLevel.hpp"
 
 #include <cstring>
 #include <format>

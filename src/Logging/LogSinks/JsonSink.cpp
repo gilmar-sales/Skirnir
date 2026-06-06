@@ -1,7 +1,6 @@
-#include "Skirnir/LogSinks/JsonSink.hpp"
-
-#include "Skirnir/LogRecord.hpp"
 #include "Detail.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks/JsonSink.hpp"
 
 #define SIMDJSON_STATIC_REFLECTION 1
 #include <simdjson.h>

@@ -1,7 +1,6 @@
-#include "Skirnir/LogSinks/ConsoleSink.hpp"
-
-#include "Skirnir/LogRecord.hpp"
 #include "Detail.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks/ConsoleSink.hpp"
 
 #include <format>
 #include <mutex>

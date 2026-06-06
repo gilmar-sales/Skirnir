@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <Skirnir/Configuration.hpp>
-#include <Skirnir/Logger.hpp>
+#include <Skirnir/Logging/Logger.hpp>
 
 #if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200809L

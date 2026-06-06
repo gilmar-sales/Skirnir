@@ -2,8 +2,8 @@
 #include <iostream>
 
 #include <Skirnir/Configuration.hpp>
-#include <Skirnir/LogScope.hpp>
-#include <Skirnir/LoggingExtension.hpp>
+#include <Skirnir/Logging/LoggingExtension.hpp>
+#include <Skirnir/Logging/LogScope.hpp>
 #include <Skirnir/Skirnir.hpp>
 
 class IRepository

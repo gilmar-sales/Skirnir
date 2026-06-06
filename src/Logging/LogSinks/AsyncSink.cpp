@@ -1,6 +1,5 @@
-#include "Skirnir/LogSinks/AsyncSink.hpp"
-
-#include "Skirnir/LogRecord.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks/AsyncSink.hpp"
 
 #include <condition_variable>
 #include <mutex>

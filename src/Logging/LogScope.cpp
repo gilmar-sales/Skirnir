@@ -1,5 +1,5 @@
-#include "Skirnir/LogScope.hpp"
-#include "Skirnir/Logger.hpp"
+#include "Skirnir/Logging/LogScope.hpp"
+#include "Skirnir/Logging/Logger.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

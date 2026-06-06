@@ -8,7 +8,7 @@
 #include <stop_token>
 #include <thread>
 
-#include "../Common.hpp"
+#include "../../Common.hpp"
 #include "ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE

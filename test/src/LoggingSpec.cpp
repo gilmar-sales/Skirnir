@@ -1,10 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <Skirnir/Configuration.hpp>
-#include <Skirnir/LogRecord.hpp>
-#include <Skirnir/LogScope.hpp>
-#include <Skirnir/LogSinks.hpp>
-#include <Skirnir/Logger.hpp>
+#include <Skirnir/Logging.hpp>
 
 #include <atomic>
 #include <chrono>

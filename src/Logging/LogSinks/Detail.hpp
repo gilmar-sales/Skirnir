@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Skirnir/LogLevel.hpp"
+#include "Skirnir/Logging/LogLevel.hpp"
 
 #include <cstddef>
 #include <cstdio>

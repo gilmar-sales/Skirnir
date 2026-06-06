@@ -1,7 +1,6 @@
-#include "Skirnir/LogSinks/FileSink.hpp"
-
-#include "Skirnir/LogRecord.hpp"
 #include "Detail.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks/FileSink.hpp"
 
 #include <mutex>
 #include <sstream>
