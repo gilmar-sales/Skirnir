@@ -33,7 +33,7 @@ class PluginC : public IPlugin
 class PluginHost
 {
   public:
-    explicit PluginHost(std::vector<Ref<IPlugin>> plugins) :
+    explicit PluginHost(std::vector<skr::Arc<IPlugin>> plugins) :
         mPlugins(std::move(plugins))
     {
     }
@@ -45,7 +45,7 @@ class PluginHost
     }
 
   private:
-    std::vector<Ref<IPlugin>> mPlugins;
+    std::vector<skr::Arc<IPlugin>> mPlugins;
 };
 
 class MultiImplApp : public skr::IApplication
@@ -56,7 +56,7 @@ class MultiImplApp : public skr::IApplication
     void Run() override
     {
         auto host = GetRootServiceProvider()->GetService<PluginHost>();
-        std::cout << "Discovered " << host << " plugins:\n";
+        std::cout << "Discovered PluginHost (" << host.get() << "):\n";
         host->List();
     }
 };

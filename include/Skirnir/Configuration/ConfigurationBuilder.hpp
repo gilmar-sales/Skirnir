@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Configuration/IConfigurationSource.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -26,14 +27,14 @@ namespace SKIRNIR_NAMESPACE
 
         ConfigurationBuilder& AddJsonFile(const std::filesystem::path& path);
         ConfigurationBuilder& AddJsonString(std::string_view json);
-        ConfigurationBuilder& AddSource(Ref<IConfigurationSource> source);
+        ConfigurationBuilder& AddSource(Arc<IConfigurationSource> source);
         ConfigurationBuilder& AddInMemory(
             std::initializer_list<std::pair<std::string, std::string>> entries);
         ConfigurationBuilder& AddEnvironmentVariables(std::string prefix = {});
 
-        Ref<ConfigurationOptions> Build();
+        Arc<ConfigurationOptions> Build();
 
       private:
-        std::vector<Ref<IConfigurationSource>> mSources;
+        std::vector<Arc<IConfigurationSource>> mSources;
     };
 } // namespace SKIRNIR_NAMESPACE

@@ -6,8 +6,8 @@
 #include <string_view>
 #include <vector>
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
-#include "Skirnir/Common/Ref.hpp"
 #include "Skirnir/Common/Reflection.hpp"
 #include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
 #include "Skirnir/DependencyInjection/ServiceId.hpp"
@@ -25,7 +25,7 @@ namespace SKIRNIR_NAMESPACE
      * registration. For Singletons with multiple registrations, the first
      * registration wins (matching .NET behavior).
      */
-    class ServiceProvider : public std::enable_shared_from_this<ServiceProvider>
+    class ServiceProvider : public enable_arc_from_this<ServiceProvider>
     {
       public:
         /**
@@ -37,12 +37,12 @@ namespace SKIRNIR_NAMESPACE
          * @param isScoped             Whether this provider is for a scope
          */
         explicit ServiceProvider(
-            const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
-            const Ref<ServicesCache>&        singletonsCache =
-                MakeRef<ServicesCache>(),
-            const Ref<ServicesCache>& scopedsCache = MakeRef<ServicesCache>(),
-            const Ref<KeyedServicesCache>& keyedSingletonsCache =
-                MakeRef<KeyedServicesCache>(),
+            const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
+            const Arc<ServicesCache>&        singletonsCache =
+                MakeArc<ServicesCache>(),
+            const Arc<ServicesCache>& scopedsCache = MakeArc<ServicesCache>(),
+            const Arc<KeyedServicesCache>& keyedSingletonsCache =
+                MakeArc<KeyedServicesCache>(),
             const bool isScoped = false) :
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
             mSingletonsCache(singletonsCache), mScopeCache(scopedsCache),
@@ -58,11 +58,11 @@ namespace SKIRNIR_NAMESPACE
          * For multi-registered types, returns the first registration.
          */
         template <typename TService>
-        Ref<TService> GetService()
+        Arc<TService> GetService()
         {
             std::set<ServiceDescription> serviceIds;
             auto result = GetServiceImpl<TService>(serviceIds);
-            if (result == nullptr)
+            if (!result)
             {
                 mLogger->LogFatal("Unable to get unregistered service: '{}'",
                                   refl::type_name<TService>());
@@ -75,7 +75,7 @@ namespace SKIRNIR_NAMESPACE
          * registered instead of throwing.
          */
         template <typename TService>
-        std::optional<Ref<TService>> TryGetService()
+        std::optional<Arc<TService>> TryGetService()
         {
             std::set<ServiceDescription> serviceIds;
             auto result = GetServiceImplNoThrow<TService>(serviceIds);
@@ -91,7 +91,7 @@ namespace SKIRNIR_NAMESPACE
          * @ref GetService.
          */
         template <typename TService>
-        Ref<TService> GetKeyedService(std::string_view key)
+        Arc<TService> GetKeyedService(std::string_view key)
         {
             auto result = TryGetKeyedService<TService>(key);
             if (!result.has_value())
@@ -108,7 +108,7 @@ namespace SKIRNIR_NAMESPACE
          * @c std::nullopt when no such registration exists.
          */
         template <typename TService>
-        std::optional<Ref<TService>> TryGetKeyedService(std::string_view key)
+        std::optional<Arc<TService>> TryGetKeyedService(std::string_view key)
         {
             std::set<ServiceDescription> serviceIds;
             auto                         range =
@@ -135,14 +135,14 @@ namespace SKIRNIR_NAMESPACE
          * always produce new instances.
          */
         template <typename TService>
-        std::vector<Ref<TService>> GetServices()
+        std::vector<Arc<TService>> GetServices()
         {
-            std::vector<Ref<TService>> results;
+            std::vector<Arc<TService>> results;
             auto serviceIds = std::set<ServiceDescription>();
             auto range =
                 mServiceDefinitionMap->equal_range(GetServiceId<TService>());
 
-            std::set<Ref<void>> seen;
+            std::set<Arc<void>> seen;
             for (auto it = range.first; it != range.second; ++it)
             {
                 auto service =
@@ -167,7 +167,7 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Creates a new ServiceScope for scoped service resolution.
          */
-        Ref<ServiceScope> CreateServiceScope() const;
+        Arc<ServiceScope> CreateServiceScope() const;
 
         /**
          * @brief Validates the service graph.
@@ -204,7 +204,7 @@ namespace SKIRNIR_NAMESPACE
          * code.
          */
         template <typename TService>
-        Ref<TService> GetServiceImpl(
+        Arc<TService> GetServiceImpl(
             std::set<ServiceDescription>& servicesDescriptions)
         {
             if constexpr (std::is_same_v<TService, ServiceProvider>)
@@ -240,12 +240,12 @@ namespace SKIRNIR_NAMESPACE
         }
 
         /**
-         * @brief Non-throwing resolution helper. Returns @c nullptr on miss
+         * @brief Non-throwing resolution helper. Returns a null Arc on miss
          * (missing registration, or Scoped service requested at the root
          * provider).
          */
         template <typename TService>
-        Ref<TService> GetServiceImplNoThrow(
+        Arc<TService> GetServiceImplNoThrow(
             std::set<ServiceDescription>& servicesDescriptions)
         {
             if constexpr (std::is_same_v<TService, ServiceProvider>)
@@ -260,13 +260,13 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-        Ref<TService> GetServiceImplNoThrow(
+        Arc<TService> GetServiceImplNoThrow(
             std::set<ServiceDescription>& servicesDescriptions,
             const ServiceDefinition&      serviceDefinition)
         {
             // Scoped at root: treat as "not available" for non-throwing
             // callers (TryGet). The throwing GetService() will surface this
-            // as a nullptr and log-fatal.
+            // as a null and log-fatal.
             if (serviceDefinition.lifetime == LifeTime::Scoped && !mIsScoped)
                 return nullptr;
 
@@ -275,7 +275,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-        Ref<TService> GetServiceImpl(
+        Arc<TService> GetServiceImpl(
             std::set<ServiceDescription>& servicesDescriptions,
             const ServiceDefinition&      serviceDefinition)
         {
@@ -287,7 +287,7 @@ namespace SKIRNIR_NAMESPACE
                     servicesDescriptions.erase(ServiceDescription {
                         .id   = GetServiceId<TService>(),
                         .name = refl::type_name<TService>() });
-                    return skr::RefCast<TService>(service);
+                    return ArcCast<TService>(service);
                 }
                 case LifeTime::Singleton: {
                     if (!serviceDefinition.key.empty())
@@ -306,13 +306,13 @@ namespace SKIRNIR_NAMESPACE
                             servicesDescriptions.erase(ServiceDescription {
                                 .id   = GetServiceId<TService>(),
                                 .name = refl::type_name<TService>() });
-                            return skr::RefCast<TService>(service);
+                            return ArcCast<TService>(service);
                         }
 
                         servicesDescriptions.erase(ServiceDescription {
                             .id   = GetServiceId<TService>(),
                             .name = refl::type_name<TService>() });
-                        return skr::RefCast<TService>(it->second);
+                        return ArcCast<TService>(it->second);
                     }
 
                     const auto it =
@@ -326,11 +326,11 @@ namespace SKIRNIR_NAMESPACE
 
                         if constexpr (std::is_base_of_v<IApplication, TService>)
                         {
-                            mApplication = skr::RefCast<IApplication>(service);
+                            mApplication = ArcCast<IApplication>(service);
                             servicesDescriptions.erase(ServiceDescription {
                                 .id   = GetServiceId<TService>(),
                                 .name = refl::type_name<TService>() });
-                            return skr::RefCast<TService>(service);
+                            return ArcCast<TService>(service);
                         }
 
                         mSingletonsCache->emplace(GetServiceId<TService>(),
@@ -339,19 +339,19 @@ namespace SKIRNIR_NAMESPACE
                         servicesDescriptions.erase(ServiceDescription {
                             .id   = GetServiceId<TService>(),
                             .name = refl::type_name<TService>() });
-                        return skr::RefCast<TService>(service);
+                        return ArcCast<TService>(service);
                     }
 
                     if constexpr (std::is_base_of_v<IApplication, TService>)
                     {
-                        return skr::RefCast<TService>(mApplication.lock());
+                        return ArcCast<TService>(mApplication.lock());
                     }
 
                     servicesDescriptions.erase(ServiceDescription {
                         .id   = GetServiceId<TService>(),
                         .name = refl::type_name<TService>() });
 
-                    return skr::RefCast<TService>(
+                    return ArcCast<TService>(
                         mSingletonsCache->at(GetServiceId<TService>()));
                 }
                 case LifeTime::Scoped: {
@@ -375,17 +375,18 @@ namespace SKIRNIR_NAMESPACE
                         servicesDescriptions.erase(ServiceDescription {
                             .id   = GetServiceId<TService>(),
                             .name = refl::type_name<TService>() });
-                        return skr::RefCast<TService>(service);
+                        return ArcCast<TService>(service);
                     }
 
                     servicesDescriptions.erase(ServiceDescription {
                         .id   = GetServiceId<TService>(),
                         .name = refl::type_name<TService>() });
 
-                    return skr::RefCast<TService>(
+                    return ArcCast<TService>(
                         mScopeCache->at(GetServiceId<TService>()));
                 }
             }
+            
             return nullptr;
         }
 
@@ -393,12 +394,12 @@ namespace SKIRNIR_NAMESPACE
 
         bool mIsScoped;
 
-        Ref<Logger<ServiceProvider>> mLogger;
-        Ref<ServiceDefinitionMap>    mServiceDefinitionMap;
-        Ref<ServicesCache>           mSingletonsCache;
-        Ref<ServicesCache>           mScopeCache;
-        Ref<KeyedServicesCache>      mKeyedSingletonsCache;
-        WeakRef<IApplication>        mApplication;
+        Arc<Logger<ServiceProvider>> mLogger;
+        Arc<ServiceDefinitionMap>    mServiceDefinitionMap;
+        Arc<ServicesCache>           mSingletonsCache;
+        Arc<ServicesCache>           mScopeCache;
+        Arc<KeyedServicesCache>      mKeyedSingletonsCache;
+        WeakArc<IApplication>        mApplication;
     };
 
 } // namespace SKIRNIR_NAMESPACE

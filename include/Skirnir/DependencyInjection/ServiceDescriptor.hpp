@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "Skirnir/Common/LifeTime.hpp"
-#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/DependencyInjection/ServiceId.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -18,7 +18,7 @@ namespace SKIRNIR_NAMESPACE
     class ServiceProvider;
     class ServiceScope;
 
-    using ServiceFactory = std::function<Ref<void>(ServiceProvider&)>;
+    using ServiceFactory = std::function<Arc<void>(ServiceProvider&)>;
 
     struct ServiceDescription
     {
@@ -41,12 +41,12 @@ namespace SKIRNIR_NAMESPACE
         }
     };
 
-    using InternalServiceFactory = std::function<Ref<void>(
+    using InternalServiceFactory = std::function<Arc<void>(
         ServiceProvider&, std::set<ServiceDescription>&)>;
 
     struct ServiceDefinition
     {
-        std::function<Ref<void>(
+        std::function<Arc<void>(
             ServiceProvider&, std::set<ServiceDescription>&)>
                                     factory  = nullptr;
         LifeTime                   lifetime = LifeTime::Transient;
@@ -55,7 +55,7 @@ namespace SKIRNIR_NAMESPACE
     };
 
     using ServiceDefinitionMap = std::multimap<ServiceId, ServiceDefinition>;
-    using ServicesCache        = std::map<ServiceId, Ref<void>>;
+    using ServicesCache        = std::map<ServiceId, Arc<void>>;
     using KeyedServicesCache   = std::map<std::pair<ServiceId, std::string>,
-                                         Ref<void>>;
+                                         Arc<void>>;
 } // namespace SKIRNIR_NAMESPACE

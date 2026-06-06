@@ -32,7 +32,7 @@ TEST(LoggerSpec, LoggerOptions_ConfigureFrom)
                       })")
                       .Build();
 
-    auto options = skr::MakeRef<skr::LoggerOptions>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
     options->ConfigureFrom(config);
 
     // Default log level should be Information
@@ -70,7 +70,7 @@ TEST(LoggerSpec, LoggerOptions_NamespaceHierarchy)
                       })")
                       .Build();
 
-    auto options = skr::MakeRef<skr::LoggerOptions>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
     options->ConfigureFrom(config);
 
     // Unknown namespace should use default (Error)

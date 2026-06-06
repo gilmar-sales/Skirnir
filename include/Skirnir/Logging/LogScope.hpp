@@ -23,7 +23,7 @@ namespace SKIRNIR_NAMESPACE
     class LogScope
     {
       public:
-        LogScope(Ref<LoggerOptions> options, std::string name);
+        LogScope(Arc<LoggerOptions> options, std::string name);
         ~LogScope();
 
         LogScope(const LogScope&)            = delete;
@@ -37,7 +37,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
       private:
-        WeakRef<LoggerOptions> mOptions;
+        WeakArc<LoggerOptions> mOptions;
         std::string            mName;
     };
 } // namespace SKIRNIR_NAMESPACE

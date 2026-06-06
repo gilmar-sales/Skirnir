@@ -41,14 +41,14 @@ Start by creating the ServiceCollection and add your services by the concrete ty
 
 Register as many implementations of a contract as you like. Resolve them
 individually with `GetService<T>()` (first registration) or collectively with
-`GetServices<T>()`, or inject a `std::vector<Ref<T>>` constructor parameter:
+`GetServices<T>()`, or inject a `std::vector<Arc<T>>` constructor parameter:
 
 ```cpp
 class PluginHost {
 public:
-    explicit PluginHost(std::vector<Ref<IPlugin>> plugins) : mPlugins(std::move(plugins)) {}
+    explicit PluginHost(std::vector<Arc<IPlugin>> plugins) : mPlugins(std::move(plugins)) {}
 private:
-    std::vector<Ref<IPlugin>> mPlugins;
+    std::vector<Arc<IPlugin>> mPlugins;
 };
 
 sc.AddTransient<IPlugin, PluginA>()
@@ -61,9 +61,9 @@ sc.AddTransient<IPlugin, PluginA>()
 ```cpp
 class Scoped {
 public:
-    Scoped(Ref<ITransient> transient) : mTransient(transient) {}
+    Scoped(Arc<ITransient> transient) : mTransient(transient) {}
 private:
-    Ref<ITransient> mTransient;
+    Arc<ITransient> mTransient;
 };
 ```
 
@@ -95,13 +95,13 @@ Skirnir uses the [fmt](https://github.com/fmtlib/fmt) to provide global logging 
 class Repository : public IRepository
 {
   public:
-    Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
+    Repository(Arc<skr::Logger<Repository>> logger) : mLogger(logger) {}
     ~Repository() override = default;
 
     void Add() override { mLogger->LogInformation("Add"); }
 
   private:
-    Ref<skr::Logger<Repository>> mLogger;
+    Arc<skr::Logger<Repository>> mLogger;
 };
 ```
 

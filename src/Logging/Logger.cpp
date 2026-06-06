@@ -1,3 +1,4 @@
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Configuration.hpp"
 #include "Skirnir/Logging/LogScope.hpp"
 #include "Skirnir/Logging/LogSinks.hpp"
@@ -43,7 +44,7 @@ namespace SKIRNIR_NAMESPACE
         return LogLevel::Information;
     }
 
-    void LoggerOptions::ConfigureFrom(Ref<ConfigurationOptions> config,
+    void LoggerOptions::ConfigureFrom(Arc<ConfigurationOptions> config,
                                       std::string_view          path)
     {
         if (!config)
@@ -97,10 +98,10 @@ namespace SKIRNIR_NAMESPACE
         std::call_once(mDefaultSinkFlag, [this] {
             std::lock_guard<std::mutex> lock(mSinksMutex);
             if (mSinks.empty())
-                mSinks.push_back(MakeRef<ConsoleSink>());
+                mSinks.push_back(MakeArc<ConsoleSink>());
         });
 
-        std::vector<Ref<ILogSink>> snapshot;
+        std::vector<Arc<ILogSink>> snapshot;
         {
             std::lock_guard<std::mutex> lock(mSinksMutex);
             snapshot = mSinks;
@@ -111,7 +112,7 @@ namespace SKIRNIR_NAMESPACE
         }
     }
 
-    LoggerOptions& LoggerOptions::AddSink(Ref<ILogSink> sink)
+    LoggerOptions& LoggerOptions::AddSink(Arc<ILogSink> sink)
     {
         if (sink)
         {
@@ -145,8 +146,8 @@ namespace SKIRNIR_NAMESPACE
         return {stack.begin(), stack.end()};
     }
 
-    Ref<LogScope> LoggerOptions::BeginScope(std::string name)
+    Arc<LogScope> LoggerOptions::BeginScope(std::string name)
     {
-        return MakeRef<LogScope>(shared_from_this(), std::move(name));
+        return MakeArc<LogScope>(shared_from_this(), std::move(name));
     }
 } // namespace SKIRNIR_NAMESPACE

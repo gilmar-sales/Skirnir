@@ -57,8 +57,8 @@ namespace
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, Sinks_RouteByLevel)
 {
-    auto options = skr::MakeRef<skr::LoggerOptions>();
-    auto sink    = skr::MakeRef<TestSink>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    auto sink    = skr::MakeArc<TestSink>();
     options->AddSink(sink);
     options->logLevel = skr::LogLevel::Warning;
 
@@ -82,8 +82,8 @@ TEST(LoggingSpec, Sinks_RouteByLevel)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, Scopes_Nest)
 {
-    auto options = skr::MakeRef<skr::LoggerOptions>();
-    auto sink    = skr::MakeRef<TestSink>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    auto sink    = skr::MakeArc<TestSink>();
     options->AddSink(sink);
 
     skr::Logger<LogCategory> logger(options);
@@ -116,12 +116,12 @@ TEST(LoggingSpec, Scopes_Nest)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, Scopes_ThreadLocal)
 {
-    auto optionsA = skr::MakeRef<skr::LoggerOptions>();
-    auto sinkA    = skr::MakeRef<TestSink>();
+    auto optionsA = skr::MakeArc<skr::LoggerOptions>();
+    auto sinkA    = skr::MakeArc<TestSink>();
     optionsA->AddSink(sinkA);
 
-    auto optionsB = skr::MakeRef<skr::LoggerOptions>();
-    auto sinkB    = skr::MakeRef<TestSink>();
+    auto optionsB = skr::MakeArc<skr::LoggerOptions>();
+    auto sinkB    = skr::MakeArc<TestSink>();
     optionsB->AddSink(sinkB);
 
     std::thread tA([&]() {
@@ -157,10 +157,10 @@ TEST(LoggingSpec, Scopes_ThreadLocal)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, AsyncSink_DrainsOnFlush)
 {
-    auto options = skr::MakeRef<skr::LoggerOptions>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
     options->ClearSinks();
-    auto inner = skr::MakeRef<TestSink>();
-    auto async = skr::MakeRef<skr::AsyncSink>(inner, 64);
+    auto inner = skr::MakeArc<TestSink>();
+    auto async = skr::MakeArc<skr::AsyncSink>(inner, 64);
     options->AddSink(async);
 
     skr::Logger<LogCategory> logger(options);
@@ -178,11 +178,11 @@ TEST(LoggingSpec, AsyncSink_DrainsOnFlush)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, AsyncSink_DrainsOnDestruction)
 {
-    auto inner = skr::MakeRef<TestSink>();
+    auto inner = skr::MakeArc<TestSink>();
     {
-        auto options = skr::MakeRef<skr::LoggerOptions>();
+        auto options = skr::MakeArc<skr::LoggerOptions>();
         options->ClearSinks();
-        auto async = skr::MakeRef<skr::AsyncSink>(inner, 64);
+        auto async = skr::MakeArc<skr::AsyncSink>(inner, 64);
         options->AddSink(async);
 
         skr::Logger<LogCategory> logger(options);
@@ -199,7 +199,7 @@ TEST(LoggingSpec, AsyncSink_DrainsOnDestruction)
 TEST(LoggingSpec, JsonSink_ProducesValidNdjson)
 {
     std::ostringstream oss;
-    auto sink = skr::MakeRef<skr::JsonSink>(oss);
+    auto sink = skr::MakeArc<skr::JsonSink>(oss);
 
     skr::LogRecord r;
     r.level    = skr::LogLevel::Information;
@@ -232,7 +232,7 @@ TEST(LoggingSpec, FileSink_AppendsAcrossInstances)
          ".log");
 
     {
-        auto sink = skr::MakeRef<skr::FileSink>(path);
+        auto sink = skr::MakeArc<skr::FileSink>(path);
         skr::LogRecord r;
         r.level    = skr::LogLevel::Information;
         r.timestamp = std::chrono::high_resolution_clock::now();
@@ -241,7 +241,7 @@ TEST(LoggingSpec, FileSink_AppendsAcrossInstances)
         sink->Write(r);
     }
     {
-        auto sink = skr::MakeRef<skr::FileSink>(path);
+        auto sink = skr::MakeArc<skr::FileSink>(path);
         skr::LogRecord r;
         r.level    = skr::LogLevel::Warning;
         r.timestamp = std::chrono::high_resolution_clock::now();
@@ -266,8 +266,8 @@ TEST(LoggingSpec, FileSink_AppendsAcrossInstances)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, LogFatal_StillThrows)
 {
-    auto options = skr::MakeRef<skr::LoggerOptions>();
-    auto sink    = skr::MakeRef<TestSink>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    auto sink    = skr::MakeArc<TestSink>();
     options->AddSink(sink);
 
     skr::Logger<LogCategory> logger(options);
@@ -284,10 +284,10 @@ TEST(LoggingSpec, LogFatal_StillThrows)
 // -----------------------------------------------------------------------
 TEST(LoggingSpec, Scopes_SurviveAsyncSink)
 {
-    auto inner = skr::MakeRef<TestSink>();
-    auto async = skr::MakeRef<skr::AsyncSink>(inner, 64);
+    auto inner = skr::MakeArc<TestSink>();
+    auto async = skr::MakeArc<skr::AsyncSink>(inner, 64);
 
-    auto options = skr::MakeRef<skr::LoggerOptions>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
     options->ClearSinks();
     options->AddSink(async);
 
@@ -332,9 +332,9 @@ TEST(LoggingSpec, FileSink_EscapesControlChars)
          ".log");
 
     {
-        auto options = skr::MakeRef<skr::LoggerOptions>();
+        auto options = skr::MakeArc<skr::LoggerOptions>();
         options->ClearSinks();
-        options->AddSink(skr::MakeRef<skr::FileSink>(path));
+        options->AddSink(skr::MakeArc<skr::FileSink>(path));
 
         skr::Logger<LogCategory> logger(options);
         logger.LogInformation(
@@ -446,7 +446,7 @@ TEST(LoggingSpec, FileSink_RotatesOnSize)
         skr::FileSinkOptions opts;
         opts.maxBytes = 64;
         opts.maxFiles = 3;
-        auto sink     = skr::MakeRef<skr::FileSink>(path, opts, /*autoFlush=*/true);
+        auto sink     = skr::MakeArc<skr::FileSink>(path, opts, /*autoFlush=*/true);
 
         // Each record is well under 64 bytes by itself, but the sink must
         // rotate once the cumulative size would exceed 64 bytes.
@@ -593,7 +593,7 @@ TEST(LoggingSpec, LoggerOptions_ConfigureFrom_IsThreadSafe)
                       })")
                       .Build();
 
-    auto options = skr::MakeRef<skr::LoggerOptions>();
+    auto options = skr::MakeArc<skr::LoggerOptions>();
 
     constexpr int kProducers = 4;
     constexpr int kIters     = 200;

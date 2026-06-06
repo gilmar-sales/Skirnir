@@ -6,10 +6,10 @@ Skirnir provides an IoC (Inversion of Control) Container for dependency injectio
 
 - **Automatic Dependency Injection**: Automatically resolves constructor dependencies
 - **Multiple Lifetimes**: Support for Singleton, Scoped, and Transient lifetimes
-- **Multi-Registration**: Register and resolve multiple implementations of a contract with `GetServices<T>()` or `std::vector<Ref<T>>` injection
+- **Multi-Registration**: Register and resolve multiple implementations of a contract with `GetServices<T>()` or `std::vector<Arc<T>>` injection
 - **Keyed / Named Services**: Distinguish multiple implementations of one contract by string key — resolve via `GetKeyedService<T>(key)` or `Keyed<T, "key">` ctor injection
-- **Optional Dependencies**: `std::optional<Ref<T>>` ctor parameters resolve to `nullopt` when `T` is not registered
-- **Non-throwing Resolution**: `TryGetService<T>()` and `TryGetKeyedService<T>(key)` return `std::optional<Ref<T>>` instead of throwing
+- **Optional Dependencies**: `std::optional<Arc<T>>` ctor parameters resolve to `nullopt` when `T` is not registered
+- **Non-throwing Resolution**: `TryGetService<T>()` and `TryGetKeyedService<T>(key)` return `std::optional<Arc<T>>` instead of throwing
 - **Captive-Dependency Detection**: `ValidateOnBuild()` flags Singletons that transitively depend on Scoped services
 - **Configuration**: Strongly-typed JSON configuration with `Bind<T>()`, typed getters, sub-sections, and source chaining
 - **Diagnostics**: `ValidateOnBuild()` and `PrintDiagnostics(std::ostream&)` for early failure detection

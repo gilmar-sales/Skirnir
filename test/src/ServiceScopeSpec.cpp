@@ -31,8 +31,8 @@ class ServiceScopeSpec : public ::testing::Test
 
     void TearDown() override { mServiceScope.reset(); }
 
-    Ref<skr::ServiceScope>    mServiceScope;
-    Ref<skr::ServiceProvider> mRootServiceProvider;
+    skr::Arc<skr::ServiceScope>    mServiceScope;
+    skr::Arc<skr::ServiceProvider> mRootServiceProvider;
 };
 
 TEST_F(ServiceScopeSpec, ServiceScopeShouldGetSingleton)

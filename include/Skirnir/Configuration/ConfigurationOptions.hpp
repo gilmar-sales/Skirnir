@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Configuration/JsonObjectReader.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -56,7 +57,7 @@ namespace SKIRNIR_NAMESPACE
          * @brief Returns a sub-section as a new ConfigurationOptions that
          *        owns its own parser.
          */
-        Ref<ConfigurationOptions> GetSection(std::string_view key) const;
+        Arc<ConfigurationOptions> GetSection(std::string_view key) const;
 
         /**
          * @brief Strongly-typed binding of a JSON sub-object into T.

@@ -35,9 +35,9 @@ namespace SKIRNIR_NAMESPACE
         }
     } // namespace
 
-    Ref<ServiceScope> ServiceProvider::CreateServiceScope() const
+    Arc<ServiceScope> ServiceProvider::CreateServiceScope() const
     {
-        return MakeRef<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
+        return MakeArc<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
     };
 
     void ServiceProvider::ValidateOnBuild()

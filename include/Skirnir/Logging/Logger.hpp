@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/Reflection.hpp"
 #include "Skirnir/Logging/LogLevel.hpp"
 #include "Skirnir/Logging/LogRecord.hpp"
@@ -37,7 +38,7 @@ namespace SKIRNIR_NAMESPACE
      * filesystem permissions or rotation policy is the caller's to
      * configure.
      */
-    class LoggerOptions : public std::enable_shared_from_this<LoggerOptions>
+    class LoggerOptions : public enable_arc_from_this<LoggerOptions>
     {
       public:
 #ifdef NDEBUG
@@ -52,7 +53,7 @@ namespace SKIRNIR_NAMESPACE
          * @param path The key path to the log level (default:
          * "logging.logLevel.default")
          */
-        void ConfigureFrom(Ref<ConfigurationOptions> config,
+        void ConfigureFrom(Arc<ConfigurationOptions> config,
                            std::string_view path = "logging.logLevel.default");
 
         template <typename T>
@@ -95,9 +96,9 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Appends a sink. Returns *this for chaining.
          */
-        LoggerOptions& AddSink(Ref<ILogSink> sink);
+        LoggerOptions& AddSink(Arc<ILogSink> sink);
 
-        const std::vector<Ref<ILogSink>>& Sinks() const noexcept
+        const std::vector<Arc<ILogSink>>& Sinks() const noexcept
         {
             return mSinks;
         }
@@ -124,7 +125,7 @@ namespace SKIRNIR_NAMESPACE
          * @brief Begins a log scope on the current thread. Returns a
          *        RAII handle that pops the scope on destruction.
          */
-        Ref<LogScope> BeginScope(std::string name);
+        Arc<LogScope> BeginScope(std::string name);
 
         /// @cond INTERNAL
         void                     PushScope(std::string name);
@@ -136,7 +137,7 @@ namespace SKIRNIR_NAMESPACE
         std::map<std::string, LogLevel> mLogLevels;
         mutable std::shared_mutex       mLogLevelsMutex;
         mutable std::mutex              mSinksMutex;
-        std::vector<Ref<ILogSink>>      mSinks;
+        std::vector<Arc<ILogSink>>      mSinks;
         std::once_flag                  mDefaultSinkFlag;
     };
 
@@ -148,7 +149,7 @@ namespace SKIRNIR_NAMESPACE
     class Logger : public ILogger
     {
       public:
-        Logger(Ref<LoggerOptions> loggerOptions) :
+        Logger(Arc<LoggerOptions> loggerOptions) :
             mLoggerOptions(std::move(loggerOptions))
         {
             mLogLevel = mLoggerOptions->GetLogLevelFor<T>();
@@ -240,7 +241,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         LogLevel           mLogLevel;
-        Ref<LoggerOptions> mLoggerOptions;
+        Arc<LoggerOptions> mLoggerOptions;
     };
 
 } // namespace SKIRNIR_NAMESPACE

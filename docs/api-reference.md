@@ -2,18 +2,18 @@
 
 ## Core Types
 
-### Ref<T>
+### Arc<T>
 
-`Ref<T>` is an alias for `std::shared_ptr<T>`. Used to hold references to services.
+`Arc<T>` is an alias for `std::shared_ptr<T>`. Used to hold references to services.
 
-### MakeRef<T>(args...)
+### MakeArc<T>(args...)
 
-Creates a `Ref<T>` instance. Factory function for service creation.
+Creates a `Arc<T>` instance. Factory function for service creation.
 
 ```cpp
 template <typename T, typename... TArgs>
     requires(std::is_constructible_v<T, TArgs...>)
-Ref<T> MakeRef(TArgs&&... args);
+Arc<T> MakeArc(TArgs&&... args);
 ```
 
 ### Lifetime
@@ -31,7 +31,7 @@ Enum specifying a service lifetime:
 Function type for service factories:
 
 ```cpp
-using ServiceFactory = std::function<Ref<void>(ServiceProvider&)>;
+using ServiceFactory = std::function<Arc<void>(ServiceProvider&)>;
 ```
 
 ---
@@ -67,8 +67,8 @@ ServiceCollection& AddTransient<TService>(const ServiceFactory& factory);
 #### Instance Registration
 
 ```cpp
-ServiceCollection& AddSingleton<TService>(Ref<TService> element);
-ServiceCollection& AddSingleton<TContract, TService>(Ref<TService> element);
+ServiceCollection& AddSingleton<TService>(Arc<TService> element);
+ServiceCollection& AddSingleton<TContract, TService>(Arc<TService> element);
 ```
 
 #### Keyed / Named Registration
@@ -86,7 +86,7 @@ ServiceCollection& AddKeyedTransient<TContract, TService>(std::string key);
 
 ```cpp
 bool Contains<TService>() const;
-Ref<ServiceProvider> CreateServiceProvider();
+Arc<ServiceProvider> CreateServiceProvider();
 ```
 
 ---
@@ -97,19 +97,19 @@ Ref<ServiceProvider> CreateServiceProvider();
 
 ```cpp
 template <typename TService>
-Ref<TService> GetService();
+Arc<TService> GetService();
 
 template <typename TService>
-std::optional<Ref<TService>> TryGetService();
+std::optional<Arc<TService>> TryGetService();
 
 template <typename TService>
-std::vector<Ref<TService>> GetServices();
+std::vector<Arc<TService>> GetServices();
 
 template <typename TService>
-Ref<TService> GetKeyedService(std::string_view key);
+Arc<TService> GetKeyedService(std::string_view key);
 
 template <typename TService>
-std::optional<Ref<TService>> TryGetKeyedService(std::string_view key);
+std::optional<Arc<TService>> TryGetKeyedService(std::string_view key);
 ```
 
 ### Validation and Diagnostics
@@ -125,7 +125,7 @@ void PrintDiagnostics(std::ostream& os) const;
 template <typename TService>
 bool Contains() const;
 
-Ref<ServiceScope> CreateServiceScope() const;
+Arc<ServiceScope> CreateServiceScope() const;
 ```
 
 ---
@@ -135,14 +135,14 @@ Ref<ServiceScope> CreateServiceScope() const;
 ### Constructor
 
 ```cpp
-ServiceScope(const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
-             const Ref<ServicesCache>&        singletonsCache);
+ServiceScope(const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
+             const Arc<ServicesCache>&        singletonsCache);
 ```
 
 ### Methods
 
 ```cpp
-Ref<ServiceProvider> GetServiceProvider() const;
+Arc<ServiceProvider> GetServiceProvider() const;
 ```
 
 ---
@@ -228,7 +228,7 @@ class ILogSink
 | `ConsoleSink` | `ConsoleSink(bool useColors = true)`                 |
 | `FileSink`    | `FileSink(path, bool autoFlush = true)`              |
 | `JsonSink`    | `JsonSink(std::ostream&)` or `JsonSink(path)`        |
-| `AsyncSink`   | `AsyncSink(Ref<ILogSink> inner, size_t capacity)`    |
+| `AsyncSink`   | `AsyncSink(Arc<ILogSink> inner, size_t capacity)`    |
 
 `AsyncSink::DroppedCount()` returns the number of records dropped due
 to a full queue.
@@ -259,25 +259,25 @@ class LoggerOptions {
     LogLevel logLevel;  // Default: Debug (debug build), Trace (release)
 
     // Sink management
-    LoggerOptions& AddSink(Ref<ILogSink> sink);
-    const std::vector<Ref<ILogSink>>& Sinks() const noexcept;
+    LoggerOptions& AddSink(Arc<ILogSink> sink);
+    const std::vector<Arc<ILogSink>>& Sinks() const noexcept;
     void ClearSinks();
 
     // Dispatch (internal — called by Logger<T>)
     void Dispatch(const LogRecord& record);
 
     // Scopes
-    Ref<LogScope> BeginScope(std::string name);
+    Arc<LogScope> BeginScope(std::string name);
 
     // Configuration
-    void ConfigureFrom(Ref<ConfigurationOptions> config,
+    void ConfigureFrom(Arc<ConfigurationOptions> config,
                        std::string_view path = "logging.logLevel.default");
 
     template <typename T> LogLevel GetLogLevelFor();
 };
 ```
 
-Inject `Ref<LoggerOptions>` to customize logging.
+Inject `Arc<LoggerOptions>` to customize logging.
 
 ---
 
@@ -288,11 +288,11 @@ Inject `Ref<LoggerOptions>` to customize logging.
 ```cpp
 ConfigurationBuilder& AddJsonFile(const std::filesystem::path& path);
 ConfigurationBuilder& AddJsonString(std::string_view json);
-ConfigurationBuilder& AddSource(Ref<IConfigurationSource> source);
+ConfigurationBuilder& AddSource(Arc<IConfigurationSource> source);
 ConfigurationBuilder& AddInMemory(
     std::initializer_list<std::pair<std::string, std::string>> entries);
 
-Ref<ConfigurationOptions> Build();
+Arc<ConfigurationOptions> Build();
 ```
 
 ### ConfigurationOptions
@@ -307,7 +307,7 @@ double      GetDouble(std::string_view key, double defaultValue = 0.0) const;
 std::string GetString(std::string_view key, std::string_view defaultValue = "") const;
 std::vector<std::string> GetArray(std::string_view key) const;
 
-Ref<ConfigurationOptions> GetSection(std::string_view key) const;
+Arc<ConfigurationOptions> GetSection(std::string_view key) const;
 
 template <typename T>
 T Bind(std::string_view section = "") const;
@@ -336,9 +336,9 @@ Abstract base class for applications:
 ```cpp
 class IApplication {
 public:
-    IApplication(const Ref<ServiceProvider>& rootServiceProvider);
+    IApplication(const Arc<ServiceProvider>& rootServiceProvider);
     virtual ~IApplication() = default;
-    Ref<ServiceProvider> GetRootServiceProvider() const;
+    Arc<ServiceProvider> GetRootServiceProvider() const;
     virtual void Run() = 0;
 };
 ```
@@ -360,5 +360,5 @@ auto app = ApplicationBuilder().Build<MyApplication>();
 ```cpp
 template <typename TApplication>
     requires(std::is_base_of_v<IApplication, TApplication>)
-Ref<TApplication> Build();
+Arc<TApplication> Build();
 ```

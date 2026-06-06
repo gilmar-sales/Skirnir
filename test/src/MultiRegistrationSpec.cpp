@@ -34,7 +34,7 @@ class FooC : public IFoo
 class Consumer
 {
   public:
-    explicit Consumer(std::vector<Ref<IFoo>> foos) : mFoos(std::move(foos)) {}
+    explicit Consumer(std::vector<skr::Arc<IFoo>> foos) : mFoos(std::move(foos)) {}
 
     std::set<std::string> Names() const
     {
@@ -45,7 +45,7 @@ class Consumer
     }
 
   private:
-    std::vector<Ref<IFoo>> mFoos;
+    std::vector<skr::Arc<IFoo>> mFoos;
 };
 
 TEST(MultiRegistrationSpec, GetServicesReturnsAllRegistrations)

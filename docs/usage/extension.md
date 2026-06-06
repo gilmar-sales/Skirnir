@@ -14,12 +14,12 @@ public:
     {
     }
 
-    void ConfigureServices(Ref<skr::ServiceCollection> services) override
+    void ConfigureServices(Arc<skr::ServiceCollection> services) override
     {
         services->AddSingleton<IDatabase, SqlDatabase>();
     }
 
-    void UseServices(Ref<skr::ServiceProvider> serviceProvider) override
+    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
     {
         auto db = serviceProvider->GetService<IDatabase>();
         db->Initialize();
@@ -46,7 +46,7 @@ public:
         mBuilder = &applicationBuilder;
     }
 
-    void UseServices(Ref<skr::ServiceProvider> serviceProvider) override
+    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
     {
         auto router = serviceProvider->GetService<IRouter>();
         mBuilder->GetServiceCollection()->AddSingleton(std::move(router));
@@ -74,7 +74,7 @@ Pass a callback to configure the extension before it's attached:
 
 ```cpp
 skr::ApplicationBuilder()
-    .AddExtension<LoggingExtension>([](Ref<LoggingExtension> ext) {
+    .AddExtension<LoggingExtension>([](Arc<LoggingExtension> ext) {
         ext->SetLevel(skr::LogLevel::Debug);
     })
     .Build<MyApp>();
@@ -102,18 +102,18 @@ The `IApplication` singleton is registered automatically during `ApplicationBuil
 class CachingExtension : public skr::IExtension
 {
 public:
-    void ConfigureServices(Ref<skr::ServiceCollection> services) override
+    void ConfigureServices(Arc<skr::ServiceCollection> services) override
     {
         services->AddSingleton<ICache, RedisCache>();
     }
 
-    void UseServices(Ref<skr::ServiceProvider> serviceProvider) override
+    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
     {
         mCache = serviceProvider->GetService<ICache>();
         mCache->Connect("redis://localhost:6379");
     }
 
 private:
-    Ref<ICache> mCache;
+    Arc<ICache> mCache;
 };
 ```

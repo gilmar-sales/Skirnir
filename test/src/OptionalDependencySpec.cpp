@@ -23,7 +23,7 @@ namespace optional_test
     class Consumer
     {
       public:
-        explicit Consumer(std::optional<Ref<ILogger>> logger) :
+        explicit Consumer(std::optional<skr::Arc<ILogger>> logger) :
             mLogger(std::move(logger))
         {
         }
@@ -35,7 +35,7 @@ namespace optional_test
         }
 
       private:
-        std::optional<Ref<ILogger>> mLogger;
+        std::optional<skr::Arc<ILogger>> mLogger;
     };
 } // namespace optional_test
 

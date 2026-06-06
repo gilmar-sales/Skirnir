@@ -10,12 +10,12 @@ for log message formatting. Each registered service automatically gets a
 class Repository : public IRepository
 {
   public:
-    Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
+    Repository(Arc<skr::Logger<Repository>> logger) : mLogger(logger) {}
 
     void Add() override { mLogger->LogInformation("Add"); }
 
   private:
-    Ref<skr::Logger<Repository>> mLogger;
+    Arc<skr::Logger<Repository>> mLogger;
 };
 ```
 
@@ -49,10 +49,10 @@ Sinks are destinations for log records. `LoggerOptions` owns a list of
 sinks; every record dispatched by every `Logger<T>` reaches all of them.
 
 ```cpp
-auto options = skr::MakeRef<skr::LoggerOptions>();
-options->AddSink(skr::MakeRef<skr::ConsoleSink>());
-options->AddSink(skr::MakeRef<skr::FileSink>("app.log"));
-options->AddSink(skr::MakeRef<skr::JsonSink>("app.ndjson"));
+auto options = skr::MakeArc<skr::LoggerOptions>();
+options->AddSink(skr::MakeArc<skr::ConsoleSink>());
+options->AddSink(skr::MakeArc<skr::FileSink>("app.log"));
+options->AddSink(skr::MakeArc<skr::JsonSink>("app.ndjson"));
 ```
 
 Or compose them with the `LoggingExtension`:
@@ -94,7 +94,7 @@ class RemoteSink final : public skr::ILogSink
     }
 };
 
-options->AddSink(skr::MakeRef<RemoteSink>());
+options->AddSink(skr::MakeArc<RemoteSink>());
 ```
 
 ### Async sink
@@ -160,6 +160,6 @@ namespace. See [Configuration](configuration.md) for the full schema.
 ```
 
 ```cpp
-auto options = skr::MakeRef<skr::LoggerOptions>();
+auto options = skr::MakeArc<skr::LoggerOptions>();
 options->ConfigureFrom(config);
 ```

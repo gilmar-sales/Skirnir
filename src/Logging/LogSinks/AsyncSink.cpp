@@ -1,3 +1,4 @@
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Logging/LogRecord.hpp"
 #include "Skirnir/Logging/LogSinks/AsyncSink.hpp"
 
@@ -8,7 +9,7 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-    AsyncSink::AsyncSink(Ref<ILogSink> inner, std::size_t queueCapacity) :
+    AsyncSink::AsyncSink(Arc<ILogSink> inner, std::size_t queueCapacity) :
         mInner(std::move(inner)), mCapacity(queueCapacity ? queueCapacity : 1)
     {
         if (!mInner)

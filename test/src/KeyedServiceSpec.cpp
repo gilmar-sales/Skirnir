@@ -117,7 +117,7 @@ TEST(KeyedServiceSpec, KeyedInjectionResolvesThroughCtorWrapper)
         std::string Name() const { return mHandler->Name(); }
 
       private:
-        Ref<IHandler> mHandler;
+        skr::Arc<IHandler> mHandler;
     };
 
     auto sp = skr::ServiceCollection()

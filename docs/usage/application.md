@@ -10,7 +10,7 @@ Skirnir provides the `IApplication` interface and `ApplicationBuilder` to struct
 class MyApp : public skr::IApplication
 {
 public:
-    MyApp(Ref<skr::ServiceProvider> rootServiceProvider) :
+    MyApp(Arc<skr::ServiceProvider> rootServiceProvider) :
         skr::IApplication(rootServiceProvider)
     {
     }
@@ -58,7 +58,7 @@ Use `AddExtension<T>()` to add extension modules. Extensions can be added with o
 ```cpp
 skr::ApplicationBuilder()
     .AddExtension<DatabaseExtension>()  // Uses defaults
-    .AddExtension<LoggingExtension>([](Ref<LoggingExtension> ext) {
+    .AddExtension<LoggingExtension>([](Arc<LoggingExtension> ext) {
         ext->SetLevel(skr::LogLevel::Debug);
     })
     .Build<MyApp>();

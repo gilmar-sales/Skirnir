@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/DependencyInjection/ServiceProvider.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -8,7 +8,7 @@ namespace SKIRNIR_NAMESPACE
     class IApplication
     {
       public:
-        IApplication(const Ref<ServiceProvider>& rootServiceProvider) :
+        IApplication(const Arc<ServiceProvider>& rootServiceProvider) :
             mRootServiceProvider(rootServiceProvider)
         {
         }
@@ -20,7 +20,7 @@ namespace SKIRNIR_NAMESPACE
          *
          * @return The root service provider instance
          */
-        Ref<ServiceProvider> GetRootServiceProvider() const
+        Arc<ServiceProvider> GetRootServiceProvider() const
         {
             return mRootServiceProvider;
         }
@@ -28,6 +28,6 @@ namespace SKIRNIR_NAMESPACE
         virtual void Run() = 0;
 
       protected:
-        Ref<ServiceProvider> mRootServiceProvider;
+        Arc<ServiceProvider> mRootServiceProvider;
     };
 } // namespace SKIRNIR_NAMESPACE

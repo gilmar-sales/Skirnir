@@ -2,9 +2,9 @@
 
 #include <type_traits>
 
+#include "Arc.hpp"
 #include "ConstructorArgumentTraits.hpp"
 #include "Namespace.hpp"
-#include "Ref.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -29,7 +29,7 @@ namespace SKIRNIR_NAMESPACE
     struct Keyed
     {
         static constexpr const char* key = Key;
-        Ref<T>                        ptr;
+        Arc<T>                       ptr;
     };
 
     template <typename T>

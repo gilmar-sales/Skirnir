@@ -8,7 +8,7 @@
 #include <stop_token>
 #include <thread>
 
-#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -24,7 +24,7 @@ namespace SKIRNIR_NAMESPACE
     class AsyncSink final : public ILogSink
     {
       public:
-        explicit AsyncSink(Ref<ILogSink> inner,
+        explicit AsyncSink(Arc<ILogSink> inner,
                            std::size_t   queueCapacity = 8192);
         ~AsyncSink() override;
 
@@ -36,7 +36,7 @@ namespace SKIRNIR_NAMESPACE
       private:
         void WorkerLoop(std::stop_token st);
 
-        Ref<ILogSink>            mInner;
+        Arc<ILogSink>            mInner;
         std::mutex               mMutex;
         std::condition_variable  mCv;
         std::deque<LogRecord>    mQueue;

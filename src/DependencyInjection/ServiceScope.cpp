@@ -1,3 +1,4 @@
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/DependencyInjection/ServiceScope.hpp"
 #include "Skirnir/DependencyInjection/ServiceProvider.hpp"
 
@@ -5,16 +6,16 @@ namespace SKIRNIR_NAMESPACE
 {
 
     ServiceScope::ServiceScope(
-        const Ref<ServiceDefinitionMap>& serviceDefinitionMap,
-        const Ref<ServicesCache>&        singletonsCache) :
+        const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
+        const Arc<ServicesCache>&        singletonsCache) :
         mServiceDefinitionMap(serviceDefinitionMap),
-        mSingletonsCache(singletonsCache), mScopeCache(MakeRef<ServicesCache>())
+        mSingletonsCache(singletonsCache), mScopeCache(MakeArc<ServicesCache>())
     {
-        mServiceProvider = MakeRef<ServiceProvider>(
+        mServiceProvider = MakeArc<ServiceProvider>(
             mServiceDefinitionMap,
             mSingletonsCache,
             mScopeCache,
-            MakeRef<KeyedServicesCache>(),
+            MakeArc<KeyedServicesCache>(),
             true);
     }
 

@@ -63,7 +63,7 @@ return the supplied default.
 | `GetDouble(key, default)` | `double`                                   |
 | `GetString(key, default)` | `std::string`                              |
 | `GetArray(key)`           | `std::vector<std::string>`                 |
-| `GetSection(key)`         | `Ref<ConfigurationOptions>`                |
+| `GetSection(key)`         | `Arc<ConfigurationOptions>`                |
 
 ## Strongly-Typed Binding
 

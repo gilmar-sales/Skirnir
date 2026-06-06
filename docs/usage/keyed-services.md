@@ -24,7 +24,7 @@ non-keyed registrations.
 registration whose contract is `T` and key matches. It throws
 `std::runtime_error` if no such registration exists. The
 non-throwing variant `TryGetKeyedService<T>(key)` returns
-`std::optional<Ref<T>>` instead.
+`std::optional<Arc<T>>` instead.
 
 ```cpp
 auto a = sp->GetKeyedService<IFoo>("a");
@@ -57,7 +57,7 @@ argument.
 
 > **Note:** The first template argument of `Keyed` is the *contract*
 > type, the second is the NTTP key. The wrapper's `ptr` is a
-> `Ref<T>` set by the container.
+> `Arc<T>` set by the container.
 
 ## Multi-registration interaction
 

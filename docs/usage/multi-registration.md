@@ -2,7 +2,7 @@
 
 A service id can have _multiple_ registrations. `GetService<T>()` returns
 the first registration; `GetServices<T>()` returns all of them. Constructor
-parameters of type `std::vector<Ref<T>>` are resolved with the same
+parameters of type `std::vector<Arc<T>>` are resolved with the same
 `GetServices` semantics.
 
 ## Registering Multiple Implementations
@@ -30,17 +30,17 @@ auto all   = sp->GetServices<IPlugin>(); // PluginA, PluginB, PluginC
 
 ## Injecting a Vector
 
-A consumer that wants every implementation can declare a `std::vector<Ref<T>>`
+A consumer that wants every implementation can declare a `std::vector<Arc<T>>`
 constructor parameter:
 
 ```cpp
 class PluginHost
 {
 public:
-    explicit PluginHost(std::vector<Ref<IPlugin>> plugins) : mPlugins(std::move(plugins)) {}
+    explicit PluginHost(std::vector<Arc<IPlugin>> plugins) : mPlugins(std::move(plugins)) {}
     void List() const { for (const auto& p : mPlugins) std::cout << p->Name() << "\n"; }
 private:
-    std::vector<Ref<IPlugin>> mPlugins;
+    std::vector<Arc<IPlugin>> mPlugins;
 };
 
 sc.AddTransient<PluginHost>();

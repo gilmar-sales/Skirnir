@@ -1,9 +1,10 @@
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Logging/LogScope.hpp"
 #include "Skirnir/Logging/Logger.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
-    LogScope::LogScope(Ref<LoggerOptions> options, std::string name) :
+    LogScope::LogScope(Arc<LoggerOptions> options, std::string name) :
         mOptions(options), mName(std::move(name))
     {
         if (auto opts = mOptions.lock())

@@ -4,10 +4,10 @@
 #include <ranges>
 #include <type_traits>
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/ConstructorArgumentTraits.hpp"
 #include "Skirnir/Common/Keyed.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
-#include "Skirnir/Common/Ref.hpp"
 #include "Skirnir/DependencyInjection/Application.hpp"
 #include "Skirnir/DependencyInjection/Extension.hpp"
 
@@ -17,7 +17,7 @@ namespace SKIRNIR_NAMESPACE
     class ApplicationBuilder
     {
       public:
-        ApplicationBuilder() : mServiceCollection(MakeRef<ServiceCollection>())
+        ApplicationBuilder() : mServiceCollection(MakeArc<ServiceCollection>())
         {
         }
 
@@ -26,7 +26,7 @@ namespace SKIRNIR_NAMESPACE
          *
          * @return The service collection used by this builder
          */
-        Ref<ServiceCollection> GetServiceCollection()
+        Arc<ServiceCollection> GetServiceCollection()
         {
             return mServiceCollection;
         }
@@ -61,7 +61,7 @@ namespace SKIRNIR_NAMESPACE
 
             extension->Attach(*this);
 
-            configureExtensionFunc(*skr::RefCast<TExtension>(extension));
+            configureExtensionFunc(*ArcCast<TExtension>(extension));
 
             return *this;
         }
@@ -78,7 +78,7 @@ namespace SKIRNIR_NAMESPACE
          */
         template <typename T>
             requires(std::is_base_of_v<IApplication, T>)
-        Ref<T> Build()
+        Arc<T> Build()
         {
             for (const auto extension : mExtensions | std::views::values)
                 extension->ConfigureServices(*mServiceCollection);
@@ -101,22 +101,22 @@ namespace SKIRNIR_NAMESPACE
       private:
         template <typename TExtension>
             requires(std::is_base_of_v<IExtension, TExtension>)
-        Ref<IExtension> GetOrCreateExtension()
+        Arc<IExtension> GetOrCreateExtension()
         {
             if (auto it = mExtensions.find(GetExtensionId<TExtension>());
                 it != mExtensions.end())
             {
-                return skr::RefCast<TExtension>(it->second);
+                return ArcCast<TExtension>(it->second);
             }
 
-            auto extension                            = MakeRef<TExtension>();
+            auto extension                            = MakeArc<TExtension>();
             mExtensions[GetExtensionId<TExtension>()] = extension;
 
             return extension;
         }
 
-        Ref<ServiceCollection>                 mServiceCollection;
-        std::map<ExtensionId, Ref<IExtension>> mExtensions;
+        Arc<ServiceCollection>                 mServiceCollection;
+        std::map<ExtensionId, Arc<IExtension>> mExtensions;
     };
 
 } // namespace SKIRNIR_NAMESPACE

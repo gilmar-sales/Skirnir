@@ -2,9 +2,10 @@
 #include <iostream>
 
 #include <Skirnir/Configuration.hpp>
-#include <Skirnir/Logging/LoggingExtension.hpp>
 #include <Skirnir/Logging/LogScope.hpp>
+#include <Skirnir/Logging/LoggingExtension.hpp>
 #include <Skirnir/Skirnir.hpp>
+
 
 class IRepository
 {
@@ -19,7 +20,7 @@ class Singleton;
 class Repository : public IRepository
 {
   public:
-    Repository(Ref<skr::Logger<Repository>> logger) : mLogger(logger) {}
+    Repository(skr::Arc<skr::Logger<Repository>> logger) : mLogger(logger) {}
     ~Repository() override = default;
 
     void Add() override
@@ -29,13 +30,14 @@ class Repository : public IRepository
     }
 
   private:
-    Ref<skr::Logger<Repository>> mLogger;
+    skr::Arc<skr::Logger<Repository>> mLogger;
 };
 
 class OtherRepository : public IRepository
 {
   public:
-    OtherRepository(Ref<skr::Logger<OtherRepository>> logger) : mLogger(logger)
+    OtherRepository(skr::Arc<skr::Logger<OtherRepository>> logger) :
+        mLogger(logger)
     {
     }
 
@@ -46,7 +48,7 @@ class OtherRepository : public IRepository
     }
 
   private:
-    Ref<skr::Logger<OtherRepository>> mLogger;
+    skr::Arc<skr::Logger<OtherRepository>> mLogger;
 };
 
 class Singleton
@@ -65,7 +67,7 @@ namespace example
     class ExampleApp : public skr::IApplication
     {
       public:
-        ExampleApp(Ref<skr::ServiceProvider> rootServiceProvider) :
+        ExampleApp(skr::Arc<skr::ServiceProvider> rootServiceProvider) :
             skr::IApplication(rootServiceProvider)
         {
             mLogger =
@@ -78,7 +80,8 @@ namespace example
         {
             const auto iterationCount = 100'000;
 
-            auto options = mRootServiceProvider->GetService<skr::LoggerOptions>();
+            auto options =
+                mRootServiceProvider->GetService<skr::LoggerOptions>();
             auto requestScope = options->BeginScope("benchmark");
 
             auto scope = mRootServiceProvider->CreateServiceScope();
@@ -115,7 +118,7 @@ namespace example
         }
 
       private:
-        Ref<skr::Logger<ExampleApp>> mLogger;
+        skr::Arc<skr::Logger<ExampleApp>> mLogger;
     };
 } // namespace example
 
@@ -142,7 +145,7 @@ class ExampleExtension final : public skr::IExtension
         // Create LoggerOptions and configure from JSON
         services
             .AddSingleton<skr::LoggerOptions>([config](skr::ServiceProvider&) {
-                auto options = skr::MakeRef<skr::LoggerOptions>();
+                auto options = skr::MakeArc<skr::LoggerOptions>();
                 options->ConfigureFrom(config);
                 return options;
             })

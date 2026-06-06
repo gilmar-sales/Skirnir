@@ -8,10 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/ConstructorArgumentTraits.hpp"
 #include "Skirnir/Common/Keyed.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
-#include "Skirnir/Common/Ref.hpp"
 #include "Skirnir/Common/Reflection.hpp"
 #include "Skirnir/DependencyInjection/Resolve.hpp"
 #include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
@@ -27,12 +27,12 @@ namespace SKIRNIR_NAMESPACE
     {
       public:
         ServiceCollection() :
-            mServiceDefinitionMap(MakeRef<ServiceDefinitionMap>())
+            mServiceDefinitionMap(MakeArc<ServiceDefinitionMap>())
         {
             AddTransient<Logger<ServiceCollection>>();
             AddTransient<Logger<ServiceProvider>>();
             mLogger =
-                MakeRef<Logger<ServiceCollection>>(MakeRef<LoggerOptions>());
+                MakeArc<Logger<ServiceCollection>>(MakeArc<LoggerOptions>());
         };
 
         ~ServiceCollection() = default;
@@ -113,7 +113,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService>
-        ServiceCollection& AddSingleton(Ref<TService> element)
+        ServiceCollection& AddSingleton(Arc<TService> element)
         {
             AddServiceWithInstance<TService, TService>(element,
                                                        LifeTime::Singleton);
@@ -124,7 +124,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename TContract, typename TService>
             requires(not std::is_same_v<TContract, TService> and
                      std::is_base_of_v<TContract, TService>)
-        ServiceCollection& AddSingleton(Ref<TService> element)
+        ServiceCollection& AddSingleton(Arc<TService> element)
         {
             AddServiceWithInstance<TContract, TService>(element,
                                                         LifeTime::Singleton);
@@ -373,14 +373,14 @@ namespace SKIRNIR_NAMESPACE
          *
          * @return A new ServiceProvider instance
          */
-        [[nodiscard]] Ref<skr::ServiceProvider> CreateServiceProvider()
+        [[nodiscard]] Arc<skr::ServiceProvider> CreateServiceProvider()
         {
             if (!Contains<LoggerOptions>())
             {
                 AddSingleton<LoggerOptions>();
             }
 
-            return MakeRef<ServiceProvider>(mServiceDefinitionMap);
+            return MakeArc<ServiceProvider>(mServiceDefinitionMap);
         }
 
       protected:
@@ -391,7 +391,7 @@ namespace SKIRNIR_NAMESPACE
                 { GetServiceId<TContract>(),
                   { .factory =
                         [](ServiceProvider&, std::set<ServiceDescription>&) {
-                            return MakeRef<TService>();
+                            return MakeArc<TService>();
                         },
                     .lifetime = lifeTime,
                     .key      = std::move(key) } });
@@ -459,9 +459,9 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TContract, typename TService>
-        void AddServiceWithInstance(Ref<TService>  instance,
-                                    const LifeTime lifeTime,
-                                    std::string    key = {})
+        void AddServiceWithInstance(Arc<TService>   instance,
+                                    const LifeTime  lifeTime,
+                                    std::string     key = {})
         {
             mServiceDefinitionMap->insert(
                 { GetServiceId<TContract>(),
@@ -496,7 +496,7 @@ namespace SKIRNIR_NAMESPACE
                     .id   = GetServiceId<TService>(),
                     .name = refl::type_name<TService>() });
 
-                return MakeRef<TService>(
+                return MakeArc<TService>(
                     Resolve<Args>(serviceProvider, servicesDescriptions)...);
             };
         }
@@ -519,12 +519,12 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService, typename Arg>
         static void ComputeCtorServiceIdsImpl(Arg, std::vector<ServiceId>& ids)
         {
-            if constexpr (is_vector_of_ref_v<Arg>)
+            if constexpr (is_vector_of_arc_v<Arg>)
             {
                 using U = typename Arg::value_type::element_type;
                 ids.push_back(GetServiceId<U>());
             }
-            else if constexpr (is_optional_of_ref_v<Arg>)
+            else if constexpr (is_optional_of_arc_v<Arg>)
             {
                 using U = typename Arg::value_type::element_type;
                 ids.push_back(GetServiceId<U>());
@@ -549,8 +549,8 @@ namespace SKIRNIR_NAMESPACE
         }
 
       private:
-        Ref<Logger<ServiceCollection>> mLogger;
-        Ref<ServiceDefinitionMap>      mServiceDefinitionMap;
+        Arc<Logger<ServiceCollection>> mLogger;
+        Arc<ServiceDefinitionMap>      mServiceDefinitionMap;
     };
 
 } // namespace SKIRNIR_NAMESPACE

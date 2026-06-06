@@ -36,8 +36,8 @@ namespace SKIRNIR_NAMESPACE
       public:
         LoggingExtension& AddConsoleSink()
         {
-            mSinkBuilders.emplace_back([](Ref<LoggerOptions> o) {
-                o->AddSink(MakeRef<ConsoleSink>());
+            mSinkBuilders.emplace_back([](Arc<LoggerOptions> o) {
+                o->AddSink(MakeArc<ConsoleSink>());
             });
             return *this;
         }
@@ -46,8 +46,8 @@ namespace SKIRNIR_NAMESPACE
                                       bool                  autoFlush = true)
         {
             mSinkBuilders.emplace_back(
-                [path = std::move(path), autoFlush](Ref<LoggerOptions> o) {
-                    o->AddSink(MakeRef<FileSink>(path, autoFlush));
+                [path = std::move(path), autoFlush](Arc<LoggerOptions> o) {
+                    o->AddSink(MakeArc<FileSink>(path, autoFlush));
                 });
             return *this;
         }
@@ -55,8 +55,8 @@ namespace SKIRNIR_NAMESPACE
         LoggingExtension& AddJsonSink(std::filesystem::path path)
         {
             mSinkBuilders.emplace_back(
-                [path = std::move(path)](Ref<LoggerOptions> o) {
-                    o->AddSink(MakeRef<JsonSink>(path));
+                [path = std::move(path)](Arc<LoggerOptions> o) {
+                    o->AddSink(MakeArc<JsonSink>(path));
                 });
             return *this;
         }
@@ -85,11 +85,11 @@ namespace SKIRNIR_NAMESPACE
             }
             if (mWrapAsync)
             {
-                std::vector<Ref<ILogSink>> current = options->Sinks();
+                std::vector<Arc<ILogSink>> current = options->Sinks();
                 options->ClearSinks();
-                auto inner = MakeRef<CompositeSink>(std::move(current));
+                auto inner = MakeArc<CompositeSink>(std::move(current));
                 options->AddSink(
-                    MakeRef<AsyncSink>(std::move(inner), *mWrapAsync));
+                    MakeArc<AsyncSink>(std::move(inner), *mWrapAsync));
             }
         }
 
@@ -97,7 +97,7 @@ namespace SKIRNIR_NAMESPACE
         class CompositeSink final : public ILogSink
         {
           public:
-            explicit CompositeSink(std::vector<Ref<ILogSink>> sinks) :
+            explicit CompositeSink(std::vector<Arc<ILogSink>> sinks) :
                 mSinks(std::move(sinks))
             {
             }
@@ -113,10 +113,10 @@ namespace SKIRNIR_NAMESPACE
             }
 
           private:
-            std::vector<Ref<ILogSink>> mSinks;
+            std::vector<Arc<ILogSink>> mSinks;
         };
 
-        std::vector<std::function<void(Ref<LoggerOptions>)>> mSinkBuilders;
+        std::vector<std::function<void(Arc<LoggerOptions>)>> mSinkBuilders;
         std::optional<std::size_t>                           mWrapAsync;
     };
 } // namespace SKIRNIR_NAMESPACE

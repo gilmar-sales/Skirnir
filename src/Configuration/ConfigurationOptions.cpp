@@ -11,6 +11,7 @@
 
 namespace SKIRNIR_NAMESPACE
 {
+    using SKIRNIR_NAMESPACE::MakeArc;
     std::vector<std::string_view> ConfigurationOptions::SplitKey(
         std::string_view key)
     {
@@ -171,14 +172,14 @@ namespace SKIRNIR_NAMESPACE
         return result;
     }
 
-    Ref<ConfigurationOptions> ConfigurationOptions::GetSection(
+    Arc<ConfigurationOptions> ConfigurationOptions::GetSection(
         std::string_view key) const
     {
         auto el = Navigate(key);
         if (!el)
-            return MakeRef<ConfigurationOptions>();
+            return MakeArc<ConfigurationOptions>();
         if (!el->is_object())
-            return MakeRef<ConfigurationOptions>();
+            return MakeArc<ConfigurationOptions>();
 
         // Serialize the sub-tree and parse it into a fresh parser so this
         // child ConfigurationOptions can outlive the parent parser.
@@ -186,7 +187,7 @@ namespace SKIRNIR_NAMESPACE
         auto        parser = std::make_unique<simdjson::dom::parser>();
         auto        rootEl = detail::ParseOrThrow(
             *parser, slice, "section '" + std::string(key) + "'");
-        return MakeRef<ConfigurationOptions>(std::move(parser), rootEl);
+        return MakeArc<ConfigurationOptions>(std::move(parser), rootEl);
     }
 
     std::string ConfigurationOptions::Stringify(simdjson::dom::element el)

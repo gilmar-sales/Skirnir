@@ -17,7 +17,7 @@ class TransientService
 class SimpleApp : public skr::IApplication
 {
   public:
-    explicit SimpleApp(const Ref<skr::ServiceProvider>& rootServiceProvider) :
+    explicit SimpleApp(const skr::Arc<skr::ServiceProvider>& rootServiceProvider) :
         IApplication(rootServiceProvider)
     {
     }
@@ -43,8 +43,8 @@ class ServiceProviderSpec : public ::testing::Test
 
     void TearDown() override { mServiceProvider.reset(); }
 
-    Ref<skr::ServiceProvider> mServiceProvider;
-    Ref<SimpleApp>            mApp;
+    skr::Arc<skr::ServiceProvider> mServiceProvider;
+    skr::Arc<SimpleApp>            mApp;
 };
 
 TEST_F(ServiceProviderSpec, ServiceProviderShouldGetSingleton)
@@ -76,7 +76,7 @@ TEST_F(ServiceProviderSpec, ServiceProviderShouldGetItSelf)
 TEST_F(ServiceProviderSpec,
        ServiceProviderShouldGetDifferentTransientsAtAnyTime)
 {
-    auto transients = std::set<Ref<TransientService>>();
+    auto transients = std::set<skr::Arc<TransientService>>();
 
     for (int i = 0; i < 10000; ++i)
     {
@@ -95,8 +95,8 @@ TEST_F(ServiceProviderSpec, RootServiceProviderShouldBreakWhenGetScoped)
 TEST_F(ServiceProviderSpec, ServiceProviderShouldClear)
 {
     // Arrange
-    WeakRef<SimpleApp>            app     = mApp;
-    WeakRef<skr::ServiceProvider> service = mServiceProvider;
+    skr::WeakArc<SimpleApp>            app     = mApp;
+    skr::WeakArc<skr::ServiceProvider> service = mServiceProvider;
 
     // Act
     mServiceProvider.reset();
@@ -114,7 +114,7 @@ class NonExistentService
 class MissingDep
 {
   public:
-    explicit MissingDep(Ref<NonExistentService>) {}
+    explicit MissingDep(skr::Arc<NonExistentService>) {}
 };
 
 TEST_F(ServiceProviderSpec, ValidateOnBuildSucceedsForWellFormedGraph)
@@ -185,7 +185,7 @@ namespace captive_test
     class NeedsScoped
     {
       public:
-        explicit NeedsScoped(Ref<ScopedService>) {}
+        explicit NeedsScoped(skr::Arc<ScopedService>) {}
     };
 } // namespace captive_test
 
@@ -206,7 +206,7 @@ TEST_F(ServiceProviderSpec, ValidateOnBuildAllowsScopedDependingOnSingleton)
     class ScopedHolder
     {
       public:
-        explicit ScopedHolder(Ref<SingletonService>) {}
+        explicit ScopedHolder(skr::Arc<SingletonService>) {}
     };
     auto sp = skr::ServiceCollection()
                   .AddScoped<ScopedHolder>()
@@ -228,7 +228,7 @@ TEST_F(ServiceProviderSpec, ValidateOnBuildIgnoresTransients)
     class TransientHolder
     {
       public:
-        explicit TransientHolder(Ref<Inner>) {}
+        explicit TransientHolder(skr::Arc<Inner>) {}
     };
     auto sp = skr::ServiceCollection()
                   .AddSingleton<TransientHolder>()

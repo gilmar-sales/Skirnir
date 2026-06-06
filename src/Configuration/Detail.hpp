@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Configuration.hpp"
 
 #include <cmath>
@@ -29,14 +30,14 @@ namespace SKIRNIR_NAMESPACE::detail
     // and serialized back to a JSON string for the final parse.
     struct JsonValue;
 
-    using JsonObject = std::map<std::string, std::shared_ptr<JsonValue>>;
-    using JsonArray  = std::vector<std::shared_ptr<JsonValue>>;
+    using JsonObject = std::map<std::string, Arc<JsonValue>>;
+    using JsonArray  = std::vector<Arc<JsonValue>>;
 
     struct JsonValue
     {
         std::variant<std::monostate, bool, int64_t, double, std::string,
-                     std::shared_ptr<JsonObject>,
-                     std::shared_ptr<JsonArray>>
+                     Arc<JsonObject>,
+                     Arc<JsonArray>>
             data;
 
         static JsonValue Null() { return JsonValue { std::monostate {} }; }
@@ -54,47 +55,47 @@ namespace SKIRNIR_NAMESPACE::detail
 
         static JsonValue FromObject()
         {
-            return JsonValue { std::make_shared<JsonObject>() };
+            return JsonValue { skr::MakeArc<JsonObject>() };
         }
 
         static JsonValue FromArray()
         {
-            return JsonValue { std::make_shared<JsonArray>() };
+            return JsonValue { skr::MakeArc<JsonArray>() };
         }
 
         bool IsObject() const
         {
-            return std::holds_alternative<std::shared_ptr<JsonObject>>(
+            return std::holds_alternative<Arc<JsonObject>>(
                 data);
         }
         bool IsArray() const
         {
-            return std::holds_alternative<std::shared_ptr<JsonArray>>(data);
+            return std::holds_alternative<Arc<JsonArray>>(data);
         }
         JsonObject& AsObject()
         {
-            return *std::get<std::shared_ptr<JsonObject>>(data);
+            return *std::get<Arc<JsonObject>>(data);
         }
         const JsonObject& AsObject() const
         {
-            return *std::get<std::shared_ptr<JsonObject>>(data);
+            return *std::get<Arc<JsonObject>>(data);
         }
         JsonArray& AsArray()
         {
-            return *std::get<std::shared_ptr<JsonArray>>(data);
+            return *std::get<Arc<JsonArray>>(data);
         }
         const JsonArray& AsArray() const
         {
-            return *std::get<std::shared_ptr<JsonArray>>(data);
+            return *std::get<Arc<JsonArray>>(data);
         }
     };
 
-    inline std::shared_ptr<JsonValue> MakeNull()
+    inline Arc<JsonValue> MakeNull()
     {
-        return std::make_shared<JsonValue>(JsonValue::Null());
+        return skr::MakeArc<JsonValue>(JsonValue::Null());
     }
 
-    inline std::shared_ptr<JsonValue> Convert(simdjson::dom::element el)
+    inline Arc<JsonValue> Convert(simdjson::dom::element el)
     {
         simdjson::dom::element_type t = el.type();
         switch (t)
@@ -105,38 +106,38 @@ namespace SKIRNIR_NAMESPACE::detail
                 bool v;
                 if (el.get_bool().get(v) != simdjson::SUCCESS)
                     return MakeNull();
-                return std::make_shared<JsonValue>(JsonValue::FromBool(v));
+                return skr::MakeArc<JsonValue>(JsonValue::FromBool(v));
             }
             case simdjson::dom::element_type::INT64: {
                 int64_t v;
                 if (el.get_int64().get(v) != simdjson::SUCCESS)
                     return MakeNull();
-                return std::make_shared<JsonValue>(JsonValue::FromInt(v));
+                return skr::MakeArc<JsonValue>(JsonValue::FromInt(v));
             }
             case simdjson::dom::element_type::UINT64: {
                 uint64_t v;
                 if (el.get_uint64().get(v) != simdjson::SUCCESS)
                     return MakeNull();
-                return std::make_shared<JsonValue>(
+                return skr::MakeArc<JsonValue>(
                     JsonValue::FromInt(static_cast<int64_t>(v)));
             }
             case simdjson::dom::element_type::DOUBLE: {
                 double v;
                 if (el.get_double().get(v) != simdjson::SUCCESS)
                     return MakeNull();
-                return std::make_shared<JsonValue>(
+                return skr::MakeArc<JsonValue>(
                     JsonValue::FromDouble(v));
             }
             case simdjson::dom::element_type::STRING: {
                 std::string_view sv;
                 if (el.get_string().get(sv) != simdjson::SUCCESS)
                     return MakeNull();
-                return std::make_shared<JsonValue>(
+                return skr::MakeArc<JsonValue>(
                     JsonValue::FromString(std::string(sv)));
             }
             case simdjson::dom::element_type::ARRAY: {
                 auto arr =
-                    std::make_shared<JsonValue>(JsonValue::FromArray());
+                    skr::MakeArc<JsonValue>(JsonValue::FromArray());
                 for (auto item : el.get_array())
                 {
                     arr->AsArray().push_back(Convert(item));
@@ -145,7 +146,7 @@ namespace SKIRNIR_NAMESPACE::detail
             }
             case simdjson::dom::element_type::OBJECT: {
                 auto obj =
-                    std::make_shared<JsonValue>(JsonValue::FromObject());
+                    skr::MakeArc<JsonValue>(JsonValue::FromObject());
                 for (auto kv : el.get_object())
                 {
                     std::string_view k              = kv.key;
@@ -161,7 +162,7 @@ namespace SKIRNIR_NAMESPACE::detail
     // @p dst on key conflicts (object keys recurse; everything else
     // replaces wholesale).
     inline void MergeInto(
-        std::shared_ptr<JsonValue> dst, std::shared_ptr<JsonValue> src)
+        Arc<JsonValue> dst, Arc<JsonValue> src)
     {
         if (!src || !dst)
             return;
@@ -230,7 +231,7 @@ namespace SKIRNIR_NAMESPACE::detail
         out.push_back('"');
     }
 
-    inline void Serialize(const std::shared_ptr<JsonValue>& v,
+    inline void Serialize(const Arc<JsonValue>& v,
                           std::string&                       out,
                           bool wrapRootInObject = false)
     {
@@ -510,13 +511,30 @@ namespace SKIRNIR_NAMESPACE::detail
     // integers and doubles become numbers, everything else stays a
     // string. Shared by @c InMemorySource and @c
     // EnvironmentVariablesSource.
-    inline std::shared_ptr<JsonValue> BuildJsonTreeFromFlat(
+    inline Arc<JsonValue> BuildJsonTreeFromFlat(
         const std::map<std::string, std::string>& flat)
     {
-        auto root = std::make_shared<JsonValue>(JsonValue::FromObject());
+        auto makeVal = [](JsonValue v) -> Arc<JsonValue> {
+            void* mem = ::operator new(
+                sizeof(skr::detail::ArcControlBlock) + sizeof(JsonValue));
+            auto* cb = ::new (mem) skr::detail::ArcControlBlock();
+            auto* obj = ::new (
+                reinterpret_cast<char*>(mem) +
+                sizeof(skr::detail::ArcControlBlock))
+                JsonValue(std::move(v));
+            cb->payload = obj;
+            cb->dispose =
+                &skr::detail::arc_dispose_destroy_in_place<JsonValue>;
+            cb->destroy =
+                &skr::detail::arc_destroy_combined<JsonValue>;
+            cb->strong.store(1, std::memory_order_relaxed);
+            cb->weak.store(1, std::memory_order_relaxed);
+            return Arc<JsonValue>(obj, cb);
+        };
+        auto root = makeVal(JsonValue::FromObject());
         for (const auto& [k, v] : flat)
         {
-            std::shared_ptr<JsonValue> cursor = root;
+            Arc<JsonValue> cursor = root;
             std::string_view           key    = k;
             while (true)
             {
@@ -526,10 +544,10 @@ namespace SKIRNIR_NAMESPACE::detail
                     std::string leaf(key);
                     auto&       map = cursor->AsObject();
                     if (v == "true")
-                        map[leaf] = std::make_shared<JsonValue>(
+                        map[leaf] = makeVal(
                             JsonValue::FromBool(true));
                     else if (v == "false")
-                        map[leaf] = std::make_shared<JsonValue>(
+                        map[leaf] = makeVal(
                             JsonValue::FromBool(false));
                     else
                     {
@@ -539,7 +557,7 @@ namespace SKIRNIR_NAMESPACE::detail
                             int64_t i   = std::stoll(v, &pos);
                             if (pos == v.size())
                             {
-                                map[leaf] = std::make_shared<JsonValue>(
+                                map[leaf] = makeVal(
                                     JsonValue::FromInt(i));
                                 break;
                             }
@@ -554,7 +572,7 @@ namespace SKIRNIR_NAMESPACE::detail
                             double      d     = ::strtod(begin, &end);
                             if (end != begin && end == begin + v.size())
                             {
-                                map[leaf] = std::make_shared<JsonValue>(
+                                map[leaf] = makeVal(
                                     JsonValue::FromDouble(d));
                                 break;
                             }
@@ -562,7 +580,7 @@ namespace SKIRNIR_NAMESPACE::detail
                         catch (...)
                         {
                         }
-                        map[leaf] = std::make_shared<JsonValue>(
+                        map[leaf] = makeVal(
                             JsonValue::FromString(v));
                     }
                     break;
@@ -579,7 +597,7 @@ namespace SKIRNIR_NAMESPACE::detail
                 auto        it  = map.find(segment);
                 if (it == map.end())
                 {
-                    auto child = std::make_shared<JsonValue>(
+                    auto child = makeVal(
                         JsonValue::FromObject());
                     map[segment] = child;
                     cursor       = child;
@@ -588,7 +606,7 @@ namespace SKIRNIR_NAMESPACE::detail
                 {
                     if (!it->second->IsObject())
                     {
-                        auto child = std::make_shared<JsonValue>(
+                        auto child = makeVal(
                             JsonValue::FromObject());
                         it->second = child;
                     }
