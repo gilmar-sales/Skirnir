@@ -8,6 +8,8 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -62,6 +64,11 @@ namespace SKIRNIR_NAMESPACE
         std::string_view sectionPath = path.substr(0, dot);
         std::string_view defaultKey  = path.substr(dot + 1);
 
+        // Collect the entries first while holding only a shared lock on the
+        // map (ForEachMember reads from the configuration, not the map), and
+        // then publish them under an exclusive lock in one shot. This keeps
+        // the writer out of any hot read path on GetLogLevelFor<T>.
+        std::vector<std::pair<std::string, LogLevel>> additions;
         config->ForEachMember(
             sectionPath,
             [&](std::string_view key, simdjson::dom::element value) {
@@ -72,8 +79,17 @@ namespace SKIRNIR_NAMESPACE
                 std::string_view sv;
                 if (value.get_string().get(sv) != simdjson::SUCCESS)
                     return;
-                mLogLevels[std::string(key)] = ParseLogLevel(sv);
+                additions.emplace_back(std::string(key), ParseLogLevel(sv));
             });
+
+        if (!additions.empty())
+        {
+            std::unique_lock<std::shared_mutex> lock(mLogLevelsMutex);
+            for (auto& [key, level] : additions)
+            {
+                mLogLevels[std::move(key)] = level;
+            }
+        }
     }
 
     void LoggerOptions::Dispatch(const LogRecord& record)

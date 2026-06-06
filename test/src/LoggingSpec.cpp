@@ -16,6 +16,12 @@
 #include <thread>
 #include <vector>
 
+#ifndef _WIN32
+#  include <fcntl.h>
+#  include <sys/stat.h>
+#  include <unistd.h>
+#endif
+
 namespace
 {
     class TestSink final : public skr::ILogSink
@@ -350,5 +356,288 @@ TEST(LoggingSpec, FileSink_EscapesControlChars)
     EXPECT_EQ(content.find("\n[Information] forged"), std::string::npos);
     // The newline should have been escaped to "\n".
     EXPECT_NE(content.find("\\n"), std::string::npos);
+}
+
+// -----------------------------------------------------------------------
+// 14. FileSink_RejectsSymlinkTarget (POSIX)
+// -----------------------------------------------------------------------
+#ifndef _WIN32
+TEST(LoggingSpec, FileSink_RejectsSymlinkTarget)
+{
+    static std::atomic<int> counter {0};
+    auto base =
+        std::filesystem::current_path() /
+        ("skirnir_symlink_test_" +
+         std::to_string(counter.fetch_add(1)) + "_" +
+         std::to_string(static_cast<long long>(
+             std::chrono::system_clock::now().time_since_epoch().count())));
+    auto target = base.string() + ".real";
+    auto link   = base.string() + ".log";
+
+    // Create a real file, then a symlink pointing at it.
+    {
+        std::ofstream t(target);
+        t << "real\n";
+    }
+    ASSERT_EQ(::symlink(target.c_str(), link.c_str()), 0)
+        << "failed to create symlink: " << std::strerror(errno);
+
+    bool threw = false;
+    try
+    {
+        skr::FileSink sink(link);
+    }
+    catch (const std::runtime_error&)
+    {
+        threw = true;
+    }
+    EXPECT_TRUE(threw) << "FileSink must refuse to follow a symlink";
+
+    // The symlink target must not have been appended to.
+    std::ifstream in(target, std::ios::binary);
+    std::string   content((std::istreambuf_iterator<char>(in)),
+                          std::istreambuf_iterator<char>());
+    EXPECT_EQ(content, "real\n");
+
+    std::error_code ec;
+    std::filesystem::remove(target, ec);
+    std::filesystem::remove(link, ec);
+}
+#endif
+
+// -----------------------------------------------------------------------
+// 15. FileSink_RejectsPathToDirectory
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, FileSink_RejectsPathToDirectory)
+{
+    auto dir = std::filesystem::current_path() /
+               ("skirnir_dir_test_" +
+                std::to_string(static_cast<long long>(
+                    std::chrono::system_clock::now().time_since_epoch().count())));
+    std::filesystem::create_directory(dir);
+
+    bool threw = false;
+    try
+    {
+        skr::FileSink sink(dir);
+    }
+    catch (const std::runtime_error&)
+    {
+        threw = true;
+    }
+    EXPECT_TRUE(threw) << "FileSink must refuse a directory path";
+
+    std::error_code ec;
+    std::filesystem::remove(dir, ec);
+}
+
+// -----------------------------------------------------------------------
+// 16. FileSink_RotatesOnSize
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, FileSink_RotatesOnSize)
+{
+    static std::atomic<int> counter {0};
+    auto base =
+        std::filesystem::current_path() /
+        ("skirnir_rotation_test_" +
+         std::to_string(counter.fetch_add(1)) + "_" +
+         std::to_string(static_cast<long long>(
+             std::chrono::system_clock::now().time_since_epoch().count())));
+    auto path = base.string() + ".log";
+
+    {
+        skr::FileSinkOptions opts;
+        opts.maxBytes = 64;
+        opts.maxFiles = 3;
+        auto sink     = skr::MakeRef<skr::FileSink>(path, opts, /*autoFlush=*/true);
+
+        // Each record is well under 64 bytes by itself, but the sink must
+        // rotate once the cumulative size would exceed 64 bytes.
+        for (int i = 0; i < 50; ++i)
+        {
+            skr::LogRecord r;
+            r.level     = skr::LogLevel::Information;
+            r.timestamp = std::chrono::system_clock::now();
+            r.category  = "rotate";
+            r.message   = "line-" + std::to_string(i);
+            sink->Write(r);
+        }
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_TRUE(std::filesystem::exists(path));
+    EXPECT_TRUE(std::filesystem::exists(base.string() + ".log.1"));
+
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    for (int i = 1; i <= 3; ++i)
+    {
+        std::filesystem::remove(base.string() + ".log." + std::to_string(i), ec);
+    }
+}
+
+// -----------------------------------------------------------------------
+// 17. FileSink_AppendsAcrossInstancesAfterRotation
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, FileSink_AppendsAcrossInstancesAfterRotation)
+{
+    static std::atomic<int> counter {0};
+    auto base =
+        std::filesystem::current_path() /
+        ("skirnir_append_rot_" +
+         std::to_string(counter.fetch_add(1)) + "_" +
+         std::to_string(static_cast<long long>(
+             std::chrono::system_clock::now().time_since_epoch().count())));
+    auto path = base.string() + ".log";
+
+    {
+        skr::FileSinkOptions opts;
+        opts.maxBytes = 32;
+        auto sink     = skr::FileSink(path, opts);
+        skr::LogRecord r;
+        r.level     = skr::LogLevel::Information;
+        r.timestamp = std::chrono::system_clock::now();
+        r.category  = "C";
+        r.message   = "first-longish-message";
+        sink.Write(r);
+    }
+    {
+        auto sink = skr::FileSink(path);
+        skr::LogRecord r;
+        r.level     = skr::LogLevel::Warning;
+        r.timestamp = std::chrono::system_clock::now();
+        r.category  = "C";
+        r.message   = "second";
+        sink.Write(r);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::ifstream in(path, std::ios::binary);
+    std::string   content((std::istreambuf_iterator<char>(in)),
+                          std::istreambuf_iterator<char>());
+    EXPECT_NE(content.find("second"), std::string::npos);
+
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    for (int i = 1; i <= 5; ++i)
+    {
+        std::filesystem::remove(base.string() + ".log." + std::to_string(i), ec);
+    }
+}
+
+// -----------------------------------------------------------------------
+// 18. JsonSink_AppendsAcrossInstances
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, JsonSink_AppendsAcrossInstances)
+{
+    static std::atomic<int> counter {0};
+    auto base =
+        std::filesystem::current_path() /
+        ("skirnir_json_append_" +
+         std::to_string(counter.fetch_add(1)) + "_" +
+         std::to_string(static_cast<long long>(
+             std::chrono::system_clock::now().time_since_epoch().count())));
+    auto path = base.string() + ".ndjson";
+
+    {
+        auto sink = skr::JsonSink(path);
+        skr::LogRecord r;
+        r.level     = skr::LogLevel::Information;
+        r.timestamp = std::chrono::system_clock::now();
+        r.category  = "A";
+        r.message   = "alpha";
+        sink.Write(r);
+    }
+    {
+        auto sink = skr::JsonSink(path);
+        skr::LogRecord r;
+        r.level     = skr::LogLevel::Warning;
+        r.timestamp = std::chrono::system_clock::now();
+        r.category  = "B";
+        r.message   = "beta";
+        sink.Write(r);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::ifstream in(path, std::ios::binary);
+    std::string   content((std::istreambuf_iterator<char>(in)),
+                          std::istreambuf_iterator<char>());
+    EXPECT_NE(content.find("\"message\":\"alpha\""), std::string::npos);
+    EXPECT_NE(content.find("\"message\":\"beta\""), std::string::npos);
+
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+}
+
+// -----------------------------------------------------------------------
+// 19. LoggerOptions_ConfigureFrom_IsThreadSafe
+// -----------------------------------------------------------------------
+namespace thread_safety_test
+{
+    struct AlphaCategory
+    {
+    };
+    struct BetaCategory
+    {
+    };
+} // namespace thread_safety_test
+
+TEST(LoggingSpec, LoggerOptions_ConfigureFrom_IsThreadSafe)
+{
+    auto config = skr::ConfigurationBuilder()
+                      .AddJsonString(R"({
+                          "logging": {
+                              "logLevel": {
+                                  "default": "Information",
+                                  "thread_safety_test::AlphaCategory": "Debug",
+                                  "thread_safety_test::BetaCategory":  "Warning"
+                              }
+                          }
+                      })")
+                      .Build();
+
+    auto options = skr::MakeRef<skr::LoggerOptions>();
+
+    constexpr int kProducers = 4;
+    constexpr int kIters     = 200;
+
+    std::vector<std::thread> writers;
+    for (int t = 0; t < kProducers; ++t)
+    {
+        writers.emplace_back([options, config]() {
+            for (int i = 0; i < kIters; ++i)
+            {
+                options->ConfigureFrom(config);
+            }
+        });
+    }
+
+    std::atomic<bool> stop {false};
+    std::vector<std::thread> readers;
+    for (int t = 0; t < kProducers; ++t)
+    {
+        readers.emplace_back([options, &stop]() {
+            while (!stop.load())
+            {
+                (void) options->GetLogLevelFor<thread_safety_test::AlphaCategory>();
+                (void) options->GetLogLevelFor<thread_safety_test::BetaCategory>();
+                (void) options->GetLogLevelFor<LogCategory>();
+            }
+        });
+    }
+
+    for (auto& th : writers)
+        th.join();
+    stop.store(true);
+    for (auto& th : readers)
+        th.join();
+
+    // After concurrent ConfigureFrom, the final state must still be
+    // consistent: the namespace-specific entries reflect the last
+    // committed write, never a half-applied state.
+    EXPECT_EQ(options->GetLogLevelFor<thread_safety_test::AlphaCategory>(),
+              skr::LogLevel::Debug);
+    EXPECT_EQ(options->GetLogLevelFor<thread_safety_test::BetaCategory>(),
+              skr::LogLevel::Warning);
 }
 

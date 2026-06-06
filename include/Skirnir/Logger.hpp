@@ -11,6 +11,7 @@
 #include <mutex>
 #include <optional>
 #include <print>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -26,6 +27,15 @@ namespace SKIRNIR_NAMESPACE
      * Holds the default level, namespace-specific level overrides, and the
      * list of sinks that receive every @c LogRecord dispatched by any
      * @c Logger<T> in the application.
+     *
+     * @attention Sensitive data: Skirnir does not redact the contents
+     * of log messages. Callers are responsible for never passing
+     * credentials, authorization headers, session tokens, full request
+     * bodies, or other PII as format arguments to @c Log*(). Once a
+     * value reaches a @c FileSink or @c JsonSink it is written verbatim
+     * to disk (subject only to control-character escaping), and any
+     * filesystem permissions or rotation policy is the caller's to
+     * configure.
      */
     class LoggerOptions : public std::enable_shared_from_this<LoggerOptions>
     {
@@ -49,6 +59,8 @@ namespace SKIRNIR_NAMESPACE
         {
             constexpr auto typeName = refl::type_name<T>();
             constexpr auto typeNs   = refl::type_namespace<T>();
+
+            std::shared_lock<std::shared_mutex> lock(mLogLevelsMutex);
 
             auto it = mLogLevels.find(std::string(typeName));
             if (it != mLogLevels.end())
@@ -121,6 +133,7 @@ namespace SKIRNIR_NAMESPACE
 
       private:
         std::map<std::string, LogLevel>  mLogLevels;
+        mutable std::shared_mutex        mLogLevelsMutex;
         mutable std::mutex               mSinksMutex;
         std::vector<Ref<ILogSink>>       mSinks;
         std::once_flag                   mDefaultSinkFlag;

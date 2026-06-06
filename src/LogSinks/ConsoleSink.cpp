@@ -22,7 +22,7 @@ namespace SKIRNIR_NAMESPACE
             std::format("[{}] {} '{}': ",
                         detail::LevelName(r.level),
                         r.timestamp,
-                        r.category);
+                        detail::SanitizeForLog(r.category));
 
         std::string scopesStr;
         if (!r.scopes.empty())

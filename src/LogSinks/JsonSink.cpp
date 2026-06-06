@@ -6,40 +6,106 @@
 #define SIMDJSON_STATIC_REFLECTION 1
 #include <simdjson.h>
 
-#include <fstream>
-#include <memory>
+#include <cstring>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
 
 namespace SKIRNIR_NAMESPACE
 {
-    JsonSink::JsonSink(std::ostream& os) : mOs(os)
+    JsonSink::JsonSink(std::ostream& os) : mOs(&os)
     {
     }
 
     JsonSink::JsonSink(std::filesystem::path path) :
-        mOwned(std::make_unique<std::ofstream>(path)), mOs(*mOwned)
+        mPath(std::move(path))
     {
-        if (!mOwned->is_open())
-            throw std::runtime_error(
-                "Skirnir: JsonSink failed to open output file");
+        auto opened = detail::OpenSecureLogFile(mPath);
+        mFile        = opened.file;
+        mCurrentSize = opened.currentSize;
+    }
+
+    JsonSink::JsonSink(std::filesystem::path path, FileSinkOptions options) :
+        mPath(std::move(path)),
+        mOptions([&] {
+            FileSinkOptions o = options;
+            if (o.maxBytes > 0 && o.maxFiles == 0)
+                o.maxFiles = 1;
+            return o;
+        }())
+    {
+        if (mOptions.rotateOnOpen && mOptions.maxBytes > 0)
+        {
+            std::error_code ec;
+            std::filesystem::remove(mPath, ec);
+        }
+        auto opened = detail::OpenSecureLogFile(mPath);
+        mFile        = opened.file;
+        mCurrentSize = opened.currentSize;
+    }
+
+    JsonSink::~JsonSink()
+    {
+        if (mFile)
+        {
+            std::fclose(mFile);
+            mFile = nullptr;
+        }
     }
 
     void JsonSink::Write(const LogRecord& r)
     {
         auto json = simdjson::to_json(r);
 
-        if (json.has_value())
+        if (!json.has_value())
+            return;
+
+        const std::string_view line = json.value();
+        // simdjson::to_json does not include the trailing newline that
+        // NDJSON expects; append it here.
+        const std::size_t      totalSize = line.size() + 1;
+
+        std::lock_guard<std::mutex> lock(mMutex);
+
+        if (mFile)
         {
-            std::lock_guard<std::mutex> lock(mMutex);
-            mOs << json.value() << '\n';
+            if (mOptions.maxBytes > 0 &&
+                mCurrentSize + totalSize > mOptions.maxBytes)
+            {
+                std::fclose(mFile);
+                mFile = nullptr;
+                detail::RotateLogFile(mPath, mOptions.maxFiles);
+                try
+                {
+                    auto reopened = detail::OpenSecureLogFile(mPath);
+                    mFile        = reopened.file;
+                    mCurrentSize = reopened.currentSize;
+                }
+                catch (...)
+                {
+                }
+            }
+
+            if (mFile)
+            {
+                if (line.size() > 0)
+                    std::fwrite(line.data(), 1, line.size(), mFile);
+                std::fputc('\n', mFile);
+                mCurrentSize += totalSize;
+            }
+        }
+        else if (mOs)
+        {
+            (*mOs) << line << '\n';
         }
     }
 
     void JsonSink::Flush()
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        mOs.flush();
+        if (mFile)
+            std::fflush(mFile);
+        else if (mOs)
+            mOs->flush();
     }
 } // namespace SKIRNIR_NAMESPACE
