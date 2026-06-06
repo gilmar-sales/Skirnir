@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ILogSink.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -11,8 +11,6 @@ namespace SKIRNIR_NAMESPACE
     class NullSink final : public ILogSink
     {
       public:
-        void Write(const LogRecord&) override
-        {
-        }
+        void Write(const LogRecord&) override {}
     };
 } // namespace SKIRNIR_NAMESPACE

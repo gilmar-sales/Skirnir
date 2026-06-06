@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ApplicationBuilder.hpp"
+#include "Common.hpp"
+#include "DependencyInjection.hpp"
+#include "Configuration.hpp"
 #include "Logging.hpp"
-#include "ServiceCollection.hpp"
-#include "ServiceScope.hpp"

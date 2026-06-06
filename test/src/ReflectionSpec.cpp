@@ -1,4 +1,4 @@
-#include <Skirnir/Reflection.hpp>
+#include <Skirnir/Common/Reflection.hpp>
 #include <gtest/gtest.h>
 
 class SingletonService

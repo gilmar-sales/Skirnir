@@ -1,9 +1,9 @@
 #pragma once
 
-#include "LogRecord.hpp"
-#include "LogSinks.hpp"
-#include "Logger.hpp"
-#include "Skirnir/Extension.hpp"
+#include "Skirnir/DependencyInjection/Extension.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks.hpp"
+#include "Skirnir/Logging/Logger.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -36,13 +36,14 @@ namespace SKIRNIR_NAMESPACE
       public:
         LoggingExtension& AddConsoleSink()
         {
-            mSinkBuilders.emplace_back(
-                [](Ref<LoggerOptions> o) { o->AddSink(MakeRef<ConsoleSink>()); });
+            mSinkBuilders.emplace_back([](Ref<LoggerOptions> o) {
+                o->AddSink(MakeRef<ConsoleSink>());
+            });
             return *this;
         }
 
         LoggingExtension& AddFileSink(std::filesystem::path path,
-                                      bool                 autoFlush = true)
+                                      bool                  autoFlush = true)
         {
             mSinkBuilders.emplace_back(
                 [path = std::move(path), autoFlush](Ref<LoggerOptions> o) {
@@ -116,6 +117,6 @@ namespace SKIRNIR_NAMESPACE
         };
 
         std::vector<std::function<void(Ref<LoggerOptions>)>> mSinkBuilders;
-        std::optional<std::size_t>                            mWrapAsync;
+        std::optional<std::size_t>                           mWrapAsync;
     };
 } // namespace SKIRNIR_NAMESPACE

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "LogLevel.hpp"
-#include "LogRecord.hpp"
-#include "../Reflection.hpp"
-#include "LogSinks/ILogSink.hpp"
+#include "Skirnir/Common/Reflection.hpp"
+#include "Skirnir/Logging/LogLevel.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 #include <chrono>
 #include <format>
@@ -49,10 +49,11 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Configures the default log level from a configuration source.
          * @param config The configuration options
-         * @param path The key path to the log level (default: "logging.logLevel.default")
+         * @param path The key path to the log level (default:
+         * "logging.logLevel.default")
          */
         void ConfigureFrom(Ref<ConfigurationOptions> config,
-                           std::string_view          path = "logging.logLevel.default");
+                           std::string_view path = "logging.logLevel.default");
 
         template <typename T>
         LogLevel GetLogLevelFor()
@@ -126,17 +127,17 @@ namespace SKIRNIR_NAMESPACE
         Ref<LogScope> BeginScope(std::string name);
 
         /// @cond INTERNAL
-        void                       PushScope(std::string name);
-        void                       PopScope();
-        std::vector<std::string>   CurrentScopes() const;
+        void                     PushScope(std::string name);
+        void                     PopScope();
+        std::vector<std::string> CurrentScopes() const;
         /// @endcond
 
       private:
-        std::map<std::string, LogLevel>  mLogLevels;
-        mutable std::shared_mutex        mLogLevelsMutex;
-        mutable std::mutex               mSinksMutex;
-        std::vector<Ref<ILogSink>>       mSinks;
-        std::once_flag                   mDefaultSinkFlag;
+        std::map<std::string, LogLevel> mLogLevels;
+        mutable std::shared_mutex       mLogLevelsMutex;
+        mutable std::mutex              mSinksMutex;
+        std::vector<Ref<ILogSink>>      mSinks;
+        std::once_flag                  mDefaultSinkFlag;
     };
 
     class ILogger
@@ -156,15 +157,15 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            DispatchImpl(LogLevel::Trace, std::source_location::current(),
-                         fmt, std::forward<TArgs>(args)...);
+            DispatchImpl(LogLevel::Trace, std::source_location::current(), fmt,
+                         std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            DispatchImpl(LogLevel::Debug, std::source_location::current(),
-                         fmt, std::forward<TArgs>(args)...);
+            DispatchImpl(LogLevel::Debug, std::source_location::current(), fmt,
+                         std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
@@ -172,7 +173,7 @@ namespace SKIRNIR_NAMESPACE
                                    TArgs&&... args)
         {
             DispatchImpl(LogLevel::Information, std::source_location::current(),
-                          fmt, std::forward<TArgs>(args)...);
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
@@ -180,26 +181,25 @@ namespace SKIRNIR_NAMESPACE
                                TArgs&&... args)
         {
             DispatchImpl(LogLevel::Warning, std::source_location::current(),
-                          fmt, std::forward<TArgs>(args)...);
+                         fmt, std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogError(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            DispatchImpl(LogLevel::Error, std::source_location::current(),
-                         fmt, std::forward<TArgs>(args)...);
+            DispatchImpl(LogLevel::Error, std::source_location::current(), fmt,
+                         std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
         inline void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args)
         {
-            DispatchImpl(LogLevel::Fatal, std::source_location::current(),
-                         fmt, std::forward<TArgs>(args)...);
+            DispatchImpl(LogLevel::Fatal, std::source_location::current(), fmt,
+                         std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void Assert(bool                       assertion,
-                           std::format_string<TArgs...> fmt,
+        inline void Assert(bool assertion, std::format_string<TArgs...> fmt,
                            TArgs&&... args)
         {
 #ifndef NDEBUG
@@ -212,22 +212,24 @@ namespace SKIRNIR_NAMESPACE
 
       private:
         template <typename... TArgs>
-        inline void DispatchImpl(LogLevel                     lvl,
-                                 std::source_location         loc,
-                                 std::format_string<TArgs...> fmt,
+        inline void DispatchImpl(LogLevel             lvl,
+                                 std::source_location loc,
+                                 std::format_string<TArgs...>
+                                     fmt,
                                  TArgs&&... args)
         {
             if (mLogLevel > lvl)
                 return;
 
-            std::string message = std::format(fmt, std::forward<TArgs>(args)...);
+            std::string message =
+                std::format(fmt, std::forward<TArgs>(args)...);
 
             LogRecord record;
             record.level     = lvl;
             record.timestamp = std::chrono::system_clock::now();
             record.category.assign(refl::type_name<T>());
-            record.message   = std::move(message);
-            record.scopes    = mLoggerOptions->CurrentScopes();
+            record.message = std::move(message);
+            record.scopes  = mLoggerOptions->CurrentScopes();
 
             mLoggerOptions->Dispatch(record);
 

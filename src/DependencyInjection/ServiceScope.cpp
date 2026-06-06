@@ -1,5 +1,5 @@
-#include "Skirnir/ServiceScope.hpp"
-#include "Skirnir/ServiceProvider.hpp"
+#include "Skirnir/DependencyInjection/ServiceScope.hpp"
+#include "Skirnir/DependencyInjection/ServiceProvider.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "ILogSink.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

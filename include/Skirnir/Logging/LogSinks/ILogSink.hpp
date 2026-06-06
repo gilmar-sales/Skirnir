@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../LogRecord.hpp"
+#include "Skirnir/Logging/LogRecord.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

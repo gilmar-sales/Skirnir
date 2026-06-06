@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "Aliases.hpp"
+#include "Skirnir/Configuration/Aliases.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

@@ -1,9 +1,15 @@
 #pragma once
 
-#include "Application.hpp"
-#include "Extension.hpp"
-
+#include <functional>
 #include <ranges>
+#include <type_traits>
+
+#include "Skirnir/Common/ConstructorArgumentTraits.hpp"
+#include "Skirnir/Common/Keyed.hpp"
+#include "Skirnir/Common/LifeTime.hpp"
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/DependencyInjection/Application.hpp"
+#include "Skirnir/DependencyInjection/Extension.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

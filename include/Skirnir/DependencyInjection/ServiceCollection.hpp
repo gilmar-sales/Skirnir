@@ -1,13 +1,24 @@
 #pragma once
 
 #include <functional>
+#include <set>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
-#include "Reflection.hpp"
-#include "ServiceId.hpp"
-#include "ServiceProvider.hpp"
+#include "Skirnir/Common/ConstructorArgumentTraits.hpp"
+#include "Skirnir/Common/Keyed.hpp"
+#include "Skirnir/Common/LifeTime.hpp"
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Common/Reflection.hpp"
+#include "Skirnir/DependencyInjection/Resolve.hpp"
+#include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
+#include "Skirnir/DependencyInjection/ServiceId.hpp"
+#include "Skirnir/DependencyInjection/ServiceProvider.hpp"
+#include "Skirnir/Logging/Logger.hpp"
+
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -254,7 +265,6 @@ namespace SKIRNIR_NAMESPACE
         ServiceCollection& AddScoped()
         {
             AddServiceWithConstructorArgs<TService, TService>(LifeTime::Scoped);
-
             return *this;
         }
 
@@ -282,7 +292,8 @@ namespace SKIRNIR_NAMESPACE
         ServiceCollection& AddKeyedSingleton(std::string key)
         {
             AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Singleton, std::move(key));
+                LifeTime::Singleton,
+                std::move(key));
             return *this;
         }
 
@@ -303,8 +314,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddKeyedScoped(std::string key)
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Scoped, std::move(key));
+            AddServiceWithConstructorArgs<TContract, TService>(LifeTime::Scoped,
+                                                               std::move(key));
             return *this;
         }
 
@@ -325,7 +336,8 @@ namespace SKIRNIR_NAMESPACE
         ServiceCollection& AddKeyedTransient(std::string key)
         {
             AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Transient, std::move(key));
+                LifeTime::Transient,
+                std::move(key));
             return *this;
         }
 
@@ -419,7 +431,7 @@ namespace SKIRNIR_NAMESPACE
         template <typename TContract, typename TService>
         void AddServiceWithFactory(const LifeTime        lifeTime,
                                    const ServiceFactory& factory,
-                                   std::string          key = {})
+                                   std::string           key = {})
         {
 
             mServiceDefinitionMap->insert(
@@ -499,7 +511,8 @@ namespace SKIRNIR_NAMESPACE
         {
             std::vector<ServiceId> ids;
             ComputeCtorServiceIdsImpl<TService>(
-                refl::first_ctor_params_tuple<TService> {}, ids);
+                refl::first_ctor_params_tuple<TService> {},
+                ids);
             return ids;
         }
 
@@ -529,8 +542,8 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename TService, typename... Args>
-        static void ComputeCtorServiceIdsImpl(
-            std::tuple<Args...>, std::vector<ServiceId>& ids)
+        static void ComputeCtorServiceIdsImpl(std::tuple<Args...>,
+                                              std::vector<ServiceId>& ids)
         {
             (ComputeCtorServiceIdsImpl<TService>(Args {}, ids), ...);
         }

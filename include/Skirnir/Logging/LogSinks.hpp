@@ -1,8 +1,8 @@
 #pragma once
 
-#include "LogSinks/ILogSink.hpp"
-#include "LogSinks/NullSink.hpp"
-#include "LogSinks/ConsoleSink.hpp"
-#include "LogSinks/FileSink.hpp"
-#include "LogSinks/JsonSink.hpp"
-#include "LogSinks/AsyncSink.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
+#include "Skirnir/Logging/LogSinks/NullSink.hpp"
+#include "Skirnir/Logging/LogSinks/ConsoleSink.hpp"
+#include "Skirnir/Logging/LogSinks/FileSink.hpp"
+#include "Skirnir/Logging/LogSinks/JsonSink.hpp"
+#include "Skirnir/Logging/LogSinks/AsyncSink.hpp"

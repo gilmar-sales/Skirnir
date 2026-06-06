@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Aliases.hpp"
+#include "Skirnir/Configuration/Aliases.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

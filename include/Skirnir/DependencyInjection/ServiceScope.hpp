@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
+#include "Skirnir/DependencyInjection/ServiceProvider.hpp"
+
 namespace SKIRNIR_NAMESPACE
 {
 

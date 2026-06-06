@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LogLevel.hpp"
+#include "Skirnir/Logging/LogLevel.hpp"
 
 #include <chrono>
 #include <string>

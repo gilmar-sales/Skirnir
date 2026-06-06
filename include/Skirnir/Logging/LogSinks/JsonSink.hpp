@@ -6,8 +6,8 @@
 #include <mutex>
 #include <ostream>
 
-#include "FileSink.hpp"
-#include "ILogSink.hpp"
+#include "Skirnir/Logging/LogSinks/FileSink.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

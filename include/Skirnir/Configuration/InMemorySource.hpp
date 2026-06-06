@@ -5,8 +5,8 @@
 #include <string>
 #include <utility>
 
-#include "Aliases.hpp"
-#include "IConfigurationSource.hpp"
+#include "Skirnir/Configuration/Aliases.hpp"
+#include "Skirnir/Configuration/IConfigurationSource.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

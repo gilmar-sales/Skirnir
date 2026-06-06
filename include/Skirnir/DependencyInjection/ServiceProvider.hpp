@@ -1,12 +1,18 @@
 #pragma once
 
-#include "Logging/Logger.hpp"
-#include "Reflection.hpp"
-#include "ServiceId.hpp"
-
+#include <map>
 #include <ostream>
+#include <set>
 #include <string_view>
 #include <vector>
+
+#include "Skirnir/Common/LifeTime.hpp"
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Common/Reflection.hpp"
+#include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
+#include "Skirnir/DependencyInjection/ServiceId.hpp"
+#include "Skirnir/Logging/Logger.hpp"
+
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -37,7 +43,7 @@ namespace SKIRNIR_NAMESPACE
             const Ref<ServicesCache>& scopedsCache = MakeRef<ServicesCache>(),
             const Ref<KeyedServicesCache>& keyedSingletonsCache =
                 MakeRef<KeyedServicesCache>(),
-            const bool                isScoped     = false) :
+            const bool isScoped = false) :
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
             mSingletonsCache(singletonsCache), mScopeCache(scopedsCache),
             mKeyedSingletonsCache(keyedSingletonsCache)
@@ -55,7 +61,7 @@ namespace SKIRNIR_NAMESPACE
         Ref<TService> GetService()
         {
             std::set<ServiceDescription> serviceIds;
-            auto                         result = GetServiceImpl<TService>(serviceIds);
+            auto result = GetServiceImpl<TService>(serviceIds);
             if (result == nullptr)
             {
                 mLogger->LogFatal("Unable to get unregistered service: '{}'",
@@ -72,8 +78,7 @@ namespace SKIRNIR_NAMESPACE
         std::optional<Ref<TService>> TryGetService()
         {
             std::set<ServiceDescription> serviceIds;
-            auto                         result =
-                GetServiceImplNoThrow<TService>(serviceIds);
+            auto result = GetServiceImplNoThrow<TService>(serviceIds);
             if (!result)
                 return std::nullopt;
             return result;
@@ -225,9 +230,8 @@ namespace SKIRNIR_NAMESPACE
                 mServiceDefinitionMap->equal_range(GetServiceId<TService>());
             if (range.first == range.second)
             {
-                mLogger->LogFatal(
-                    "Unable to get unregistered service: '{}'",
-                    refl::type_name<TService>());
+                mLogger->LogFatal("Unable to get unregistered service: '{}'",
+                                  refl::type_name<TService>());
             }
             const auto& serviceDefinition = range.first->second;
 
@@ -252,7 +256,7 @@ namespace SKIRNIR_NAMESPACE
             if (range.first == range.second)
                 return nullptr;
             return GetServiceImplNoThrow<TService>(servicesDescriptions,
-                                                    range.first->second);
+                                                   range.first->second);
         }
 
         template <typename TService>

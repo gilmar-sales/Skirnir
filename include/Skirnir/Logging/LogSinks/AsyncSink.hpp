@@ -8,8 +8,8 @@
 #include <stop_token>
 #include <thread>
 
-#include "../../Common.hpp"
-#include "ILogSink.hpp"
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

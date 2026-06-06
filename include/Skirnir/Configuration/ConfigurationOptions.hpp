@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-#include "JsonObjectReader.hpp"
+#include "Skirnir/Configuration/JsonObjectReader.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

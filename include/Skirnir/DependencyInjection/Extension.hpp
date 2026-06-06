@@ -1,6 +1,8 @@
 #pragma once
 
-#include "ServiceCollection.hpp"
+#include "Skirnir/Common/Namespace.hpp"
+#include "Skirnir/Common/Ref.hpp"
+#include "Skirnir/DependencyInjection/ServiceCollection.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {

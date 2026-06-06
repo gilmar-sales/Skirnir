@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Logger.hpp"
+#include "Skirnir/Logging/Logger.hpp"
 
 #include <string>
 

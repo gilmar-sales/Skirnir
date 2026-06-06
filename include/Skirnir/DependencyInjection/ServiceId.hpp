@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Skirnir/Common/Namespace.hpp"
+
 namespace SKIRNIR_NAMESPACE
 {
     using ServiceId = unsigned long;
