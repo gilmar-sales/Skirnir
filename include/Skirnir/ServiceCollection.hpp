@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "Common.hpp"
 #include "Reflection.hpp"
 #include "ServiceId.hpp"
 #include "ServiceProvider.hpp"

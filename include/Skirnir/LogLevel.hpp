@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Common.hpp"
-
 namespace SKIRNIR_NAMESPACE
 {
     /**

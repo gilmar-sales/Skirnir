@@ -58,6 +58,8 @@ endif()
 
 target_include_directories(skirnir PUBLIC include)
 
+target_precompile_headers(skirnir PUBLIC <Skirnir/Common.hpp>)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(skirnir PUBLIC -freflection)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

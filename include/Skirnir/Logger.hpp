@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common.hpp"
 #include "LogLevel.hpp"
 #include "LogRecord.hpp"
 #include "Reflection.hpp"

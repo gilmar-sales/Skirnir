@@ -2,7 +2,6 @@
 
 #include "Application.hpp"
 #include "Extension.hpp"
-#include "Skirnir/Common.hpp"
 
 #include <ranges>
 

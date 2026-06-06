@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common.hpp"
 #include "ServiceProvider.hpp"
 
 namespace SKIRNIR_NAMESPACE

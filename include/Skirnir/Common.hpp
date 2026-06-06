@@ -19,10 +19,6 @@ using Ref = std::shared_ptr<T>;
 template <typename T>
 using WeakRef = std::weak_ptr<T>;
 
-#ifdef _MSC_VER
-    #define __PRETTY_FUNCTION__ __FUNCSIG__
-#endif
-
 namespace SKIRNIR_NAMESPACE
 {
     template <typename T, typename... TArgs>
