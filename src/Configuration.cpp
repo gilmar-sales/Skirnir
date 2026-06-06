@@ -9,7 +9,7 @@
 #include <variant>
 
 #if defined(_WIN32)
-#include <windows.h>
+    #include <windows.h>
 #endif
 
 namespace SKIRNIR_NAMESPACE
@@ -429,7 +429,8 @@ namespace SKIRNIR_NAMESPACE
         // Build a nested object tree from a flat dotted-key map. The leaf
         // values are coerced: "true"/"false" become bool, fully-parseable
         // integers and doubles become numbers, everything else stays a
-        // string. Shared by @c InMemorySource and @c EnvironmentVariablesSource.
+        // string. Shared by @c InMemorySource and @c
+        // EnvironmentVariablesSource.
         std::shared_ptr<JsonValue> BuildJsonTreeFromFlat(
             const std::map<std::string, std::string>& flat)
         {
@@ -443,6 +444,9 @@ namespace SKIRNIR_NAMESPACE
                     auto dot = key.find('.');
                     if (dot == std::string_view::npos)
                     {
+                        if (key.empty())
+                            break;
+
                         std::string leaf(key);
                         auto&       map = cursor->AsObject();
                         if (v == "true")
@@ -456,8 +460,7 @@ namespace SKIRNIR_NAMESPACE
                             try
                             {
                                 size_t  pos = 0;
-                                int64_t i =
-                                    std::stoll(std::string(v), &pos);
+                                int64_t i   = std::stoll(v, &pos);
                                 if (pos == v.size())
                                 {
                                     map[leaf] = std::make_shared<JsonValue>(
@@ -471,8 +474,7 @@ namespace SKIRNIR_NAMESPACE
                             try
                             {
                                 size_t pos = 0;
-                                double d =
-                                    std::stod(std::string(v), &pos);
+                                double d   = std::stod(v, &pos);
                                 if (pos == v.size())
                                 {
                                     map[leaf] = std::make_shared<JsonValue>(
@@ -488,6 +490,13 @@ namespace SKIRNIR_NAMESPACE
                         }
                         break;
                     }
+
+                    if (dot == 0)
+                    {
+                        key = key.substr(1);
+                        continue;
+                    }
+
                     std::string segment(key.substr(0, dot));
                     auto&       map = cursor->AsObject();
                     auto        it  = map.find(segment);
@@ -522,12 +531,16 @@ namespace SKIRNIR_NAMESPACE
             return out;
         }
 
-        // Portable enumeration of the process environment. Each entry is
-        // the raw "NAME=VALUE" string split on the first '='. Malformed
-        // entries (no '=') are skipped.
-        std::vector<std::pair<std::string, std::string>> EnumerateEnv()
+        std::vector<std::pair<std::string, std::string>> EnumerateEnv(
+            std::string_view prefix)
         {
             std::vector<std::pair<std::string, std::string>> result;
+            auto prependPrefixMatch = [&](std::string_view name) -> bool {
+                if (prefix.empty())
+                    return true;
+                return name.size() >= prefix.size() &&
+                       name.compare(0, prefix.size(), prefix) == 0;
+            };
 #if defined(_WIN32)
             char* block = ::GetEnvironmentStringsA();
             if (!block)
@@ -536,9 +549,14 @@ namespace SKIRNIR_NAMESPACE
             {
                 std::string_view entry(p);
                 auto             eq = entry.find('=');
-                if (eq != std::string_view::npos)
+
+                if (eq != std::string_view::npos && eq > 0 &&
+                    prependPrefixMatch(entry.substr(0, eq)))
                 {
-                    result.emplace_back(std::string(entry.substr(0, eq)),
+                    std::string_view name = entry.substr(0, eq);
+                    if (!prefix.empty())
+                        name.remove_prefix(prefix.size());
+                    result.emplace_back(std::string(name),
                                         std::string(entry.substr(eq + 1)));
                 }
                 p += entry.size() + 1; // skip NUL terminator
@@ -549,10 +567,15 @@ namespace SKIRNIR_NAMESPACE
             for (char** p = environ; p && *p; ++p)
             {
                 std::string_view entry(*p);
-                auto eq = entry.find('=');
+                auto             eq = entry.find('=');
                 if (eq == std::string_view::npos)
                     continue;
-                result.emplace_back(std::string(entry.substr(0, eq)),
+                if (!prependPrefixMatch(entry.substr(0, eq)))
+                    continue;
+                std::string_view name = entry.substr(0, eq);
+                if (!prefix.empty())
+                    name.remove_prefix(prefix.size());
+                result.emplace_back(std::string(name),
                                     std::string(entry.substr(eq + 1)));
             }
 #endif
@@ -613,8 +636,7 @@ namespace SKIRNIR_NAMESPACE
         return mElement;
     }
 
-    EnvironmentVariablesSource::EnvironmentVariablesSource(
-        std::string prefix) :
+    EnvironmentVariablesSource::EnvironmentVariablesSource(std::string prefix) :
         mPrefix(std::move(prefix))
     {
     }
@@ -622,22 +644,14 @@ namespace SKIRNIR_NAMESPACE
     std::string EnvironmentVariablesSource::BuildJson() const
     {
         std::map<std::string, std::string> flat;
-        for (auto& [name, value] : EnumerateEnv())
+        for (auto& [name, value] : EnumerateEnv(mPrefix))
         {
-            if (!mPrefix.empty())
-            {
-                if (name.size() < mPrefix.size() ||
-                    name.compare(0, mPrefix.size(), mPrefix) != 0)
-                    continue;
-                name.erase(0, mPrefix.size());
-            }
             // "__" -> "." so that "DB__HOST" becomes "DB.HOST".
             std::string key;
             key.reserve(name.size());
             for (size_t i = 0; i < name.size(); ++i)
             {
-                if (i + 1 < name.size() && name[i] == '_' &&
-                    name[i + 1] == '_')
+                if (i + 1 < name.size() && name[i] == '_' && name[i + 1] == '_')
                 {
                     key.push_back('.');
                     ++i;

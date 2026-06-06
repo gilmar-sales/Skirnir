@@ -172,7 +172,7 @@ namespace
         ~ScopedEnv()
         {
 #if defined(_WIN32)
-            _putenv_s(mName.c_str(), "");
+            _putenv_s(mName.c_str(), nullptr);
 #else
             ::unsetenv(mName.c_str());
 #endif
@@ -260,4 +260,24 @@ TEST(ConfigurationSpec, EnvironmentVariables_MergesWithOtherSources)
             .Build();
     EXPECT_EQ(config->GetInt("a"), 1);
     EXPECT_EQ(config->GetInt("b"), 2);
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_EmptySegmentsInKeyAreSkipped)
+{
+    ScopedEnv env("SKR_TEST_PREFIX___FOO", "value");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables("SKR_TEST_PREFIX_")
+                        .Build();
+    EXPECT_EQ(config->GetString("FOO"), "value");
+}
+
+TEST(ConfigurationSpec, InMemorySource_EmptySegmentsInKeyAreSkipped)
+{
+    auto config = skr::ConfigurationBuilder()
+                      .AddInMemory({{".foo.bar", "x"},
+                                    {"a..b", "y"},
+                                    {"trail.", "z"}})
+                      .Build();
+    EXPECT_EQ(config->GetString("foo.bar"), "x");
+    EXPECT_EQ(config->GetString("a.b"), "y");
 }
