@@ -16,8 +16,8 @@ namespace SKIRNIR_NAMESPACE
     {
         LogLevel                              level = LogLevel::Information;
         std::chrono::system_clock::time_point timestamp {};
-        std::string_view                      category {};
+        std::string                           category {};
         std::string                           message {};
-        std::vector<std::string_view>         scopes {};
+        std::vector<std::string>              scopes {};
     };
 } // namespace SKIRNIR_NAMESPACE

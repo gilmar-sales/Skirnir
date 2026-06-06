@@ -32,13 +32,13 @@ namespace SKIRNIR_NAMESPACE
             {
                 if (i)
                     scopesStr.push_back('/');
-                scopesStr.append(r.scopes[i]);
+                scopesStr.append(detail::SanitizeForLog(r.scopes[i]));
             }
             scopesStr += "] ";
         }
 
         std::lock_guard<std::mutex> lock(mMutex);
         (void) mUseColors; // color toggle reserved for future fmt branch
-        std::print("{}{}{}\n", prefix, scopesStr, r.message);
+        std::print("{}{}{}\n", prefix, scopesStr, detail::SanitizeForLog(r.message));
     }
 } // namespace SKIRNIR_NAMESPACE

@@ -8,10 +8,12 @@
 #include <chrono>
 #include <format>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <print>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace SKIRNIR_NAMESPACE
 {
@@ -80,12 +82,7 @@ namespace SKIRNIR_NAMESPACE
         /**
          * @brief Appends a sink. Returns *this for chaining.
          */
-        LoggerOptions& AddSink(Ref<ILogSink> sink)
-        {
-            if (sink)
-                mSinks.push_back(std::move(sink));
-            return *this;
-        }
+        LoggerOptions& AddSink(Ref<ILogSink> sink);
 
         const std::vector<Ref<ILogSink>>& Sinks() const noexcept
         {
@@ -97,10 +94,7 @@ namespace SKIRNIR_NAMESPACE
          *        extension wants to wrap the existing sinks in an
          *        @c AsyncSink.
          */
-        void ClearSinks()
-        {
-            mSinks.clear();
-        }
+        void ClearSinks();
 
         /**
          * @brief Dispatches a record to every configured sink.
@@ -122,12 +116,14 @@ namespace SKIRNIR_NAMESPACE
         /// @cond INTERNAL
         void                       PushScope(std::string name);
         void                       PopScope();
-        std::vector<std::string_view> CurrentScopes() const;
+        std::vector<std::string>   CurrentScopes() const;
         /// @endcond
 
       private:
-        std::map<std::string, LogLevel> mLogLevels;
-        std::vector<Ref<ILogSink>>      mSinks;
+        std::map<std::string, LogLevel>  mLogLevels;
+        mutable std::mutex               mSinksMutex;
+        std::vector<Ref<ILogSink>>       mSinks;
+        std::once_flag                   mDefaultSinkFlag;
     };
 
     class ILogger
@@ -216,7 +212,7 @@ namespace SKIRNIR_NAMESPACE
             LogRecord record;
             record.level     = lvl;
             record.timestamp = std::chrono::system_clock::now();
-            record.category  = refl::type_name<T>();
+            record.category.assign(refl::type_name<T>());
             record.message   = std::move(message);
             record.scopes    = mLoggerOptions->CurrentScopes();
 

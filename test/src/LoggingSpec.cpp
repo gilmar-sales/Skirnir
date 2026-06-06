@@ -276,3 +276,79 @@ TEST(LoggingSpec, LogFatal_StillThrows)
     EXPECT_EQ(recs[0].message, "boom");
 }
 
+// -----------------------------------------------------------------------
+// 11. Scopes_SurviveAsyncSink (regression for F-01 use-after-free)
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, Scopes_SurviveAsyncSink)
+{
+    auto inner = skr::MakeRef<TestSink>();
+    auto async = skr::MakeRef<skr::AsyncSink>(inner, 64);
+
+    auto options = skr::MakeRef<skr::LoggerOptions>();
+    options->ClearSinks();
+    options->AddSink(async);
+
+    skr::Logger<LogCategory> logger(options);
+
+    {
+        auto scope = options->BeginScope(std::string("scoped-name"));
+        logger.LogInformation("hi");
+        // scope is destroyed here; the string it pushed to the
+        // thread-local stack is freed. AsyncSink must still see the
+        // scope name because scopes are owned by the LogRecord itself.
+    }
+
+    async->Flush();
+
+    auto recs = inner->Snapshot();
+    ASSERT_EQ(recs.size(), 1u);
+    ASSERT_EQ(recs[0].scopes.size(), 1u);
+    EXPECT_EQ(recs[0].scopes[0], "scoped-name");
+}
+
+// -----------------------------------------------------------------------
+// 12. ConsoleSink_EscapesControlChars (regression for F-04 log injection)
+// -----------------------------------------------------------------------
+// Note: we do not capture stdout in this test because std::print writes to
+// the C stdout (not the std::cout streambuf), and a portable capture would
+// require platform-specific plumbing. The sanitizer is shared with
+// FileSink (see test #13 below) so coverage is still effective.
+
+// -----------------------------------------------------------------------
+// 13. FileSink_EscapesControlChars (regression for F-04 log injection)
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, FileSink_EscapesControlChars)
+{
+    static std::atomic<int> counter {0};
+    auto path =
+        std::filesystem::current_path() /
+        ("skirnir_log_injection_test_" +
+         std::to_string(counter.fetch_add(1)) + "_" +
+         std::to_string(static_cast<long long>(
+             std::chrono::system_clock::now().time_since_epoch().count())) +
+         ".log");
+
+    {
+        auto options = skr::MakeRef<skr::LoggerOptions>();
+        options->ClearSinks();
+        options->AddSink(skr::MakeRef<skr::FileSink>(path));
+
+        skr::Logger<LogCategory> logger(options);
+        logger.LogInformation(
+            "user said: {}\n[Information] forged 'Admin': approved",
+            "hello");
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::ifstream in(path, std::ios::binary);
+    ASSERT_TRUE(in.is_open()) << "Failed to open " << path;
+    std::string content((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+
+    // No raw newline immediately followed by a "[Information]" line —
+    // i.e. the attacker could not forge a record by inserting a newline.
+    EXPECT_EQ(content.find("\n[Information] forged"), std::string::npos);
+    // The newline should have been escaped to "\n".
+    EXPECT_NE(content.find("\\n"), std::string::npos);
+}
+

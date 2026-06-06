@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 
@@ -77,15 +78,37 @@ namespace SKIRNIR_NAMESPACE
 
     void LoggerOptions::Dispatch(const LogRecord& record)
     {
-        if (mSinks.empty())
+        std::call_once(mDefaultSinkFlag, [this] {
+            std::lock_guard<std::mutex> lock(mSinksMutex);
+            if (mSinks.empty())
+                mSinks.push_back(MakeRef<ConsoleSink>());
+        });
+
+        std::vector<Ref<ILogSink>> snapshot;
         {
-            mSinks.push_back(MakeRef<ConsoleSink>());
+            std::lock_guard<std::mutex> lock(mSinksMutex);
+            snapshot = mSinks;
         }
-        
-        for (auto& sink : mSinks)
+        for (auto& sink : snapshot)
         {
             sink->Write(record);
         }
+    }
+
+    LoggerOptions& LoggerOptions::AddSink(Ref<ILogSink> sink)
+    {
+        if (sink)
+        {
+            std::lock_guard<std::mutex> lock(mSinksMutex);
+            mSinks.push_back(std::move(sink));
+        }
+        return *this;
+    }
+
+    void LoggerOptions::ClearSinks()
+    {
+        std::lock_guard<std::mutex> lock(mSinksMutex);
+        mSinks.clear();
     }
 
     void LoggerOptions::PushScope(std::string name)
@@ -100,7 +123,7 @@ namespace SKIRNIR_NAMESPACE
             stack.pop_back();
     }
 
-    std::vector<std::string_view> LoggerOptions::CurrentScopes() const
+    std::vector<std::string> LoggerOptions::CurrentScopes() const
     {
         const auto& stack = ScopeStack();
         return {stack.begin(), stack.end()};

@@ -48,11 +48,11 @@ namespace SKIRNIR_NAMESPACE
             {
                 if (i)
                     oss << '/';
-                oss << r.scopes[i];
+                oss << detail::SanitizeForLog(r.scopes[i]);
             }
             oss << "] ";
         }
-        oss << r.message << '\n';
+        oss << detail::SanitizeForLog(r.message) << '\n';
         std::string line = oss.str();
 
         std::lock_guard<std::mutex> lock(mMutex);
