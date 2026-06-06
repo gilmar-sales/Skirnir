@@ -4,6 +4,14 @@
 #include <Skirnir/Configuration.hpp>
 #include <Skirnir/Logger.hpp>
 
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
+#include <cstdlib>
+#include <string>
+#include <utility>
+
 TEST(ConfigurationSpec, LoadFromString_SimpleValue)
 {
     auto config = skr::ConfigurationBuilder()
@@ -145,4 +153,111 @@ TEST(ConfigurationSpec, MalformedJson_Throws)
     EXPECT_THROW(
         skr::ConfigurationBuilder().AddJsonString(R"({not json)").Build(),
         std::runtime_error);
+}
+
+namespace
+{
+    class ScopedEnv
+    {
+      public:
+        ScopedEnv(std::string name, std::string value) : mName(std::move(name))
+        {
+#if defined(_WIN32)
+            _putenv_s(mName.c_str(), value.c_str());
+#else
+            ::setenv(mName.c_str(), value.c_str(), 1);
+#endif
+        }
+
+        ~ScopedEnv()
+        {
+#if defined(_WIN32)
+            _putenv_s(mName.c_str(), "");
+#else
+            ::unsetenv(mName.c_str());
+#endif
+        }
+
+        ScopedEnv(const ScopedEnv&)            = delete;
+        ScopedEnv& operator=(const ScopedEnv&) = delete;
+
+      private:
+        std::string mName;
+    };
+} // namespace
+
+TEST(ConfigurationSpec, EnvironmentVariables_ReadsKeyWithoutPrefix)
+{
+    ScopedEnv env("SKR_TEST_FOO", "bar");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables()
+                        .Build();
+    EXPECT_EQ(config->GetString("SKR_TEST_FOO"), "bar");
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_HonorsPrefix_StripsIt)
+{
+    ScopedEnv env("SKR_TEST_PREFIX_HOST", "localhost");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables("SKR_TEST_PREFIX_")
+                        .Build();
+    EXPECT_EQ(config->GetString("HOST"), "localhost");
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_DoubleUnderscoreBecomesNestedSection)
+{
+    ScopedEnv env("SKR_TEST_PREFIX_DB__PORT", "5432");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables("SKR_TEST_PREFIX_")
+                        .Build();
+    EXPECT_EQ(config->GetInt("DB.PORT"), 5432);
+    auto db = config->GetSection("DB");
+    ASSERT_TRUE(db);
+    EXPECT_EQ(db->GetInt("PORT"), 5432);
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_CoercesBooleansAndNumbers)
+{
+    ScopedEnv b("SKR_TEST_BOOL", "true");
+    ScopedEnv i("SKR_TEST_INT", "42");
+    ScopedEnv d("SKR_TEST_DBL", "1.5");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables()
+                        .Build();
+    EXPECT_TRUE(config->GetBool("SKR_TEST_BOOL"));
+    EXPECT_EQ(config->GetInt("SKR_TEST_INT"), 42);
+    EXPECT_DOUBLE_EQ(config->GetDouble("SKR_TEST_DBL"), 1.5);
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_NonParseableValueStaysString)
+{
+    ScopedEnv s("SKR_TEST_STR", "hello world");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables()
+                        .Build();
+    EXPECT_EQ(config->GetString("SKR_TEST_STR"), "hello world");
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_IgnoresVariablesOutsidePrefix)
+{
+    ScopedEnv other("SKR_TEST_OTHER", "x");
+    ScopedEnv inside("SKR_TEST_PREFIX_KEPT", "y");
+    auto      config = skr::ConfigurationBuilder()
+                        .AddEnvironmentVariables("SKR_TEST_PREFIX_")
+                        .Build();
+    EXPECT_FALSE(config->HasKey("SKR_TEST_OTHER"));
+    EXPECT_FALSE(config->HasKey("OTHER"));
+    EXPECT_EQ(config->GetString("KEPT"), "y");
+}
+
+TEST(ConfigurationSpec, EnvironmentVariables_MergesWithOtherSources)
+{
+    ScopedEnv env("SKR_TEST_PREFIX_b", "2");
+    auto      config =
+        skr::ConfigurationBuilder()
+            .AddJsonString(R"({"a": 1})")
+            .AddEnvironmentVariables("SKR_TEST_PREFIX_")
+            .Build();
+    EXPECT_EQ(config->GetInt("a"), 1);
+    EXPECT_EQ(config->GetInt("b"), 2);
 }

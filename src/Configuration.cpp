@@ -8,6 +8,10 @@
 #include <stdexcept>
 #include <variant>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace SKIRNIR_NAMESPACE
 {
     namespace
@@ -421,6 +425,139 @@ namespace SKIRNIR_NAMESPACE
             buffer << file.rdbuf();
             return buffer.str();
         }
+
+        // Build a nested object tree from a flat dotted-key map. The leaf
+        // values are coerced: "true"/"false" become bool, fully-parseable
+        // integers and doubles become numbers, everything else stays a
+        // string. Shared by @c InMemorySource and @c EnvironmentVariablesSource.
+        std::shared_ptr<JsonValue> BuildJsonTreeFromFlat(
+            const std::map<std::string, std::string>& flat)
+        {
+            auto root = std::make_shared<JsonValue>(JsonValue::FromObject());
+            for (const auto& [k, v] : flat)
+            {
+                std::shared_ptr<JsonValue> cursor = root;
+                std::string_view           key    = k;
+                while (true)
+                {
+                    auto dot = key.find('.');
+                    if (dot == std::string_view::npos)
+                    {
+                        std::string leaf(key);
+                        auto&       map = cursor->AsObject();
+                        if (v == "true")
+                            map[leaf] = std::make_shared<JsonValue>(
+                                JsonValue::FromBool(true));
+                        else if (v == "false")
+                            map[leaf] = std::make_shared<JsonValue>(
+                                JsonValue::FromBool(false));
+                        else
+                        {
+                            try
+                            {
+                                size_t  pos = 0;
+                                int64_t i =
+                                    std::stoll(std::string(v), &pos);
+                                if (pos == v.size())
+                                {
+                                    map[leaf] = std::make_shared<JsonValue>(
+                                        JsonValue::FromInt(i));
+                                    break;
+                                }
+                            }
+                            catch (...)
+                            {
+                            }
+                            try
+                            {
+                                size_t pos = 0;
+                                double d =
+                                    std::stod(std::string(v), &pos);
+                                if (pos == v.size())
+                                {
+                                    map[leaf] = std::make_shared<JsonValue>(
+                                        JsonValue::FromDouble(d));
+                                    break;
+                                }
+                            }
+                            catch (...)
+                            {
+                            }
+                            map[leaf] = std::make_shared<JsonValue>(
+                                JsonValue::FromString(v));
+                        }
+                        break;
+                    }
+                    std::string segment(key.substr(0, dot));
+                    auto&       map = cursor->AsObject();
+                    auto        it  = map.find(segment);
+                    if (it == map.end())
+                    {
+                        auto child = std::make_shared<JsonValue>(
+                            JsonValue::FromObject());
+                        map[segment] = child;
+                        cursor       = child;
+                    }
+                    else
+                    {
+                        if (!it->second->IsObject())
+                        {
+                            auto child = std::make_shared<JsonValue>(
+                                JsonValue::FromObject());
+                            it->second = child;
+                        }
+                        cursor = it->second;
+                    }
+                    key = key.substr(dot + 1);
+                }
+            }
+            return root;
+        }
+
+        std::string BuildJsonFromFlat(
+            const std::map<std::string, std::string>& flat)
+        {
+            std::string out;
+            Serialize(BuildJsonTreeFromFlat(flat), out, true);
+            return out;
+        }
+
+        // Portable enumeration of the process environment. Each entry is
+        // the raw "NAME=VALUE" string split on the first '='. Malformed
+        // entries (no '=') are skipped.
+        std::vector<std::pair<std::string, std::string>> EnumerateEnv()
+        {
+            std::vector<std::pair<std::string, std::string>> result;
+#if defined(_WIN32)
+            char* block = ::GetEnvironmentStringsA();
+            if (!block)
+                return result;
+            for (char* p = block; *p; /* advance inside loop */)
+            {
+                std::string_view entry(p);
+                auto             eq = entry.find('=');
+                if (eq != std::string_view::npos)
+                {
+                    result.emplace_back(std::string(entry.substr(0, eq)),
+                                        std::string(entry.substr(eq + 1)));
+                }
+                p += entry.size() + 1; // skip NUL terminator
+            }
+            ::FreeEnvironmentStringsA(block);
+#else
+            extern char** environ;
+            for (char** p = environ; p && *p; ++p)
+            {
+                std::string_view entry(*p);
+                auto eq = entry.find('=');
+                if (eq == std::string_view::npos)
+                    continue;
+                result.emplace_back(std::string(entry.substr(0, eq)),
+                                    std::string(entry.substr(eq + 1)));
+            }
+#endif
+            return result;
+        }
     } // namespace
 
     // ------------------------------------------------------------------
@@ -461,88 +598,7 @@ namespace SKIRNIR_NAMESPACE
 
     std::string InMemorySource::BuildJson() const
     {
-        // Build a nested object tree from dotted keys, then serialize.
-        auto root = std::make_shared<JsonValue>(JsonValue::FromObject());
-        for (const auto& [k, v] : mFlat)
-        {
-            std::shared_ptr<JsonValue> cursor = root;
-            std::string_view           key    = k;
-            while (true)
-            {
-                auto dot = key.find('.');
-                if (dot == std::string_view::npos)
-                {
-                    std::string leaf(key);
-                    auto&       map = cursor->AsObject();
-                    if (v == "true")
-                        map[leaf] = std::make_shared<JsonValue>(
-                            JsonValue::FromBool(true));
-                    else if (v == "false")
-                        map[leaf] = std::make_shared<JsonValue>(
-                            JsonValue::FromBool(false));
-                    else
-                    {
-                        // Try to parse as integer / double.
-                        try
-                        {
-                            size_t  pos = 0;
-                            int64_t i   = std::stoll(std::string(v), &pos);
-                            if (pos == v.size())
-                            {
-                                map[leaf] = std::make_shared<JsonValue>(
-                                    JsonValue::FromInt(i));
-                                break;
-                            }
-                        }
-                        catch (...)
-                        {
-                        }
-                        try
-                        {
-                            size_t pos = 0;
-                            double d   = std::stod(std::string(v), &pos);
-                            if (pos == v.size())
-                            {
-                                map[leaf] = std::make_shared<JsonValue>(
-                                    JsonValue::FromDouble(d));
-                                break;
-                            }
-                        }
-                        catch (...)
-                        {
-                        }
-                        map[leaf] = std::make_shared<JsonValue>(
-                            JsonValue::FromString(v));
-                    }
-                    break;
-                }
-                std::string segment(key.substr(0, dot));
-                auto&       map = cursor->AsObject();
-                auto        it  = map.find(segment);
-                if (it == map.end())
-                {
-                    auto child =
-                        std::make_shared<JsonValue>(JsonValue::FromObject());
-                    map[segment] = child;
-                    cursor       = child;
-                }
-                else
-                {
-                    if (!it->second->IsObject())
-                    {
-                        auto child = std::make_shared<JsonValue>(
-                            JsonValue::FromObject());
-                        it->second = child;
-                    }
-                    cursor = it->second;
-                }
-                key = key.substr(dot + 1);
-            }
-        }
-
-        std::string out;
-        Serialize(root, out, true);
-        return out;
+        return BuildJsonFromFlat(mFlat);
     }
 
     simdjson::dom::element InMemorySource::Load()
@@ -553,6 +609,58 @@ namespace SKIRNIR_NAMESPACE
             mParser     = simdjson::dom::parser {};
             mElement = ParseOrThrow(mParser, mSerialized, "in-memory source");
             mDirty   = false;
+        }
+        return mElement;
+    }
+
+    EnvironmentVariablesSource::EnvironmentVariablesSource(
+        std::string prefix) :
+        mPrefix(std::move(prefix))
+    {
+    }
+
+    std::string EnvironmentVariablesSource::BuildJson() const
+    {
+        std::map<std::string, std::string> flat;
+        for (auto& [name, value] : EnumerateEnv())
+        {
+            if (!mPrefix.empty())
+            {
+                if (name.size() < mPrefix.size() ||
+                    name.compare(0, mPrefix.size(), mPrefix) != 0)
+                    continue;
+                name.erase(0, mPrefix.size());
+            }
+            // "__" -> "." so that "DB__HOST" becomes "DB.HOST".
+            std::string key;
+            key.reserve(name.size());
+            for (size_t i = 0; i < name.size(); ++i)
+            {
+                if (i + 1 < name.size() && name[i] == '_' &&
+                    name[i + 1] == '_')
+                {
+                    key.push_back('.');
+                    ++i;
+                }
+                else
+                {
+                    key.push_back(name[i]);
+                }
+            }
+            flat[std::move(key)] = std::move(value);
+        }
+        return BuildJsonFromFlat(flat);
+    }
+
+    simdjson::dom::element EnvironmentVariablesSource::Load()
+    {
+        if (mDirty)
+        {
+            mSerialized = BuildJson();
+            mParser     = simdjson::dom::parser {};
+            mElement    = ParseOrThrow(
+                mParser, mSerialized, "environment variables source");
+            mDirty = false;
         }
         return mElement;
     }
@@ -818,6 +926,14 @@ namespace SKIRNIR_NAMESPACE
         std::initializer_list<std::pair<std::string, std::string>> entries)
     {
         mSources.push_back(MakeRef<InMemorySource>(entries));
+        return *this;
+    }
+
+    ConfigurationBuilder& ConfigurationBuilder::AddEnvironmentVariables(
+        std::string prefix)
+    {
+        mSources.push_back(
+            MakeRef<EnvironmentVariablesSource>(std::move(prefix)));
         return *this;
     }
 
