@@ -14,13 +14,9 @@ if(NOT TARGET skirnir)
 
   include(FetchContent)
 
-  add_library(skirnir
-    src/Configuration.cpp
-    src/LogScope.cpp
-    src/LogSinks.cpp
-    src/Logger.cpp
-    src/ServiceScope.cpp
-    src/ServiceProvider.cpp)
+  file(GLOB_RECURSE SKIRNIR_SRC src/**.cpp)
+
+  add_library(skirnir ${SKIRNIR_SRC})
 
   add_library(skirnir::skirnir ALIAS skirnir)
 
