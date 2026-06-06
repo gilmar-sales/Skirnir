@@ -204,6 +204,22 @@ TEST(ConfigurationCoercionSpec, InMemorySource_LocaleCommaDecimalStaysString)
     EXPECT_DOUBLE_EQ(config->GetDouble("n", -1.0), -1.0);
 }
 
+TEST(ConfigurationCoercionSpec, InMemorySource_PureDotKeyIsStoredInTree)
+{
+    auto config =
+        skr::ConfigurationBuilder().AddInMemory({{".", "v"}}).Build();
+
+    // The value is stored in the root object with an empty-string key.
+    // It is not reachable via the dot-path API (GetString("") returns
+    // the root, not a child), but it is observable via ForEachMember.
+    bool found = false;
+    config->ForEachMember("", [&](std::string_view k, auto) {
+        if (k.empty())
+            found = true;
+    });
+    EXPECT_TRUE(found);
+}
+
 TEST(ConfigurationCoercionSpec, InMemorySource_NaNStringSerializesAsNull)
 {
     auto config =

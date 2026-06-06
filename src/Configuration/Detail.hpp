@@ -410,15 +410,23 @@ namespace SKIRNIR_NAMESPACE::detail
                                         std::size_t       maxLen = 256)
     {
         std::string out;
-        out.reserve(std::min(s.size(), maxLen) + 4);
+        out.reserve(std::min(s.size(), maxLen) + 8);
         std::size_t i = 0;
         for (; i < s.size() && out.size() < maxLen; ++i)
         {
-            char c = s[i];
-            if (static_cast<unsigned char>(c) < 0x20 || c == 0x7f)
-                out.append("\\x");
+            unsigned char c = static_cast<unsigned char>(s[i]);
+            if (c < 0x20 || c == 0x7f)
+            {
+                if (out.size() + 6 > maxLen)
+                    break;
+                char buf[8];
+                std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+                out.append(buf);
+            }
             else
-                out.push_back(c);
+            {
+                out.push_back(static_cast<char>(c));
+            }
         }
         if (i < s.size())
             out.append("...");
@@ -447,7 +455,14 @@ namespace SKIRNIR_NAMESPACE::detail
         if (maxSize >= 0)
         {
             std::error_code ec;
-            auto            size = std::filesystem::file_size(path, ec);
+            auto status = std::filesystem::status(path, ec);
+            if (!ec && !std::filesystem::is_regular_file(status))
+            {
+                throw std::runtime_error(
+                    "Skirnir: config file '" + safePath +
+                    "' is not a regular file");
+            }
+            auto size = std::filesystem::file_size(path, ec);
             if (!ec && size > static_cast<std::uintmax_t>(maxSize))
             {
                 throw std::runtime_error(
@@ -455,15 +470,39 @@ namespace SKIRNIR_NAMESPACE::detail
                     "' exceeds maximum allowed size");
             }
         }
-        std::ifstream file(path);
+        std::ifstream file(path, std::ios::binary);
         if (!file.is_open())
         {
             throw std::runtime_error(
                 "Skirnir: failed to open config file '" + safePath + "'");
         }
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        return buffer.str();
+        if (maxSize < 0)
+        {
+            std::stringstream ss;
+            ss << file.rdbuf();
+            return ss.str();
+        }
+
+        constexpr std::size_t kChunk = 64 * 1024;
+        std::string          buffer;
+        buffer.reserve(kChunk);
+        char                 chunk[kChunk];
+        while (file)
+        {
+            file.read(chunk, static_cast<std::streamsize>(kChunk));
+            auto got = static_cast<std::size_t>(file.gcount());
+            if (got == 0)
+                break;
+            if (buffer.size() + got >
+                static_cast<std::size_t>(maxSize) + 1)
+            {
+                throw std::runtime_error(
+                    "Skirnir: config file '" + safePath +
+                    "' exceeds maximum allowed size");
+            }
+            buffer.append(chunk, got);
+        }
+        return buffer;
     }
 
     // Build a nested object tree from a flat dotted-key map. The leaf
