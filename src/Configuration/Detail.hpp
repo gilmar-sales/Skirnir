@@ -4,10 +4,12 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iomanip>
+#include <locale>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -309,10 +311,9 @@ namespace SKIRNIR_NAMESPACE::detail
     {
         std::string out;
         // The single-pass DOM API does not allow walking the same
-        // element twice, but we only need to walk it once. We collect
-        // strings into a vector so the underlying parser's tape remains
-        // valid until we are done emitting.
-        std::vector<std::string> stringStorage;
+        // element twice, so we accumulate the output into a single
+        // string in a single pass. The caller must keep the backing
+        // parser alive until the returned string is no longer needed.
 
         std::function<void(simdjson::dom::element)> write;
         write = [&](simdjson::dom::element e) {
@@ -405,6 +406,25 @@ namespace SKIRNIR_NAMESPACE::detail
         return out;
     }
 
+    inline std::string SanitizeForError(std::string_view s,
+                                        std::size_t       maxLen = 256)
+    {
+        std::string out;
+        out.reserve(std::min(s.size(), maxLen) + 4);
+        std::size_t i = 0;
+        for (; i < s.size() && out.size() < maxLen; ++i)
+        {
+            char c = s[i];
+            if (static_cast<unsigned char>(c) < 0x20 || c == 0x7f)
+                out.append("\\x");
+            else
+                out.push_back(c);
+        }
+        if (i < s.size())
+            out.append("...");
+        return out;
+    }
+
     inline simdjson::dom::element ParseOrThrow(simdjson::dom::parser& parser,
                                                const std::string&     src,
                                                std::string_view       what)
@@ -413,21 +433,33 @@ namespace SKIRNIR_NAMESPACE::detail
         if (result.error() != simdjson::SUCCESS)
         {
             throw std::runtime_error(
-                "Skirnir: failed to parse " + std::string(what) +
+                "Skirnir: failed to parse " + SanitizeForError(what) +
                 " as JSON (" + simdjson::error_message(result.error()) +
                 ")");
         }
         return result.value();
     }
 
-    inline std::string ReadFileOrThrow(const std::filesystem::path& path)
+    inline std::string ReadFileOrThrow(const std::filesystem::path& path,
+                                      std::int64_t                  maxSize)
     {
+        const std::string safePath = SanitizeForError(path.string());
+        if (maxSize >= 0)
+        {
+            std::error_code ec;
+            auto            size = std::filesystem::file_size(path, ec);
+            if (!ec && size > static_cast<std::uintmax_t>(maxSize))
+            {
+                throw std::runtime_error(
+                    "Skirnir: config file '" + safePath +
+                    "' exceeds maximum allowed size");
+            }
+        }
         std::ifstream file(path);
         if (!file.is_open())
         {
             throw std::runtime_error(
-                "Skirnir: failed to open config file '" + path.string() +
-                "'");
+                "Skirnir: failed to open config file '" + safePath + "'");
         }
         std::stringstream buffer;
         buffer << file.rdbuf();
@@ -452,9 +484,6 @@ namespace SKIRNIR_NAMESPACE::detail
                 auto dot = key.find('.');
                 if (dot == std::string_view::npos)
                 {
-                    if (key.empty())
-                        break;
-
                     std::string leaf(key);
                     auto&       map = cursor->AsObject();
                     if (v == "true")
@@ -481,9 +510,10 @@ namespace SKIRNIR_NAMESPACE::detail
                         }
                         try
                         {
-                            size_t pos = 0;
-                            double d   = std::stod(v, &pos);
-                            if (pos == v.size())
+                            const char* begin = v.c_str();
+                            char*       end   = nullptr;
+                            double      d     = ::strtod(begin, &end);
+                            if (end != begin && end == begin + v.size())
                             {
                                 map[leaf] = std::make_shared<JsonValue>(
                                     JsonValue::FromDouble(d));

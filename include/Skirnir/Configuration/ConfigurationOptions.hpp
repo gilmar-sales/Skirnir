@@ -10,8 +10,6 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-    using ConfigurationObject = ::simdjson::dom::object;
-
     class ConfigurationBuilder;
 
     /**
@@ -30,12 +28,17 @@ namespace SKIRNIR_NAMESPACE
 
         /**
          * @brief Gets a configuration value by dot-separated key path.
-         * @return Stringified JSON value, or nullopt if not found.
+         * @return Stringified JSON value, or nullopt if not found or the
+         *         value is JSON null. An empty @p key returns the
+         *         stringified root element (or nullopt if the root is
+         *         null).
          */
         std::optional<std::string> GetValue(std::string_view key) const;
 
         /**
          * @brief Checks if a dot-separated key path exists.
+         *
+         * An empty @p key always returns true unless the root is null.
          */
         bool HasKey(std::string_view key) const;
 
@@ -87,8 +90,11 @@ namespace SKIRNIR_NAMESPACE
                                   ^^T,
                                   std::meta::access_context::current())))
             {
-                reader.TryGet(std::meta::identifier_of(member),
-                              result.[:member:]);
+                constexpr auto name = std::meta::identifier_of(member);
+                if constexpr (name.size() > 0)
+                {
+                    reader.TryGet(name, result.[:member:]);
+                }
             }
             return result;
         }

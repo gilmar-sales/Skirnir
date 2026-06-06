@@ -20,7 +20,8 @@ namespace SKIRNIR_NAMESPACE
     ConfigurationBuilder& ConfigurationBuilder::AddJsonString(
         std::string_view json)
     {
-        mSources.push_back(MakeRef<JsonStringSource>(std::string(json)));
+        mSources.push_back(MakeRef<JsonStringSource>(
+            std::string(json.data(), json.size())));
         return *this;
     }
 

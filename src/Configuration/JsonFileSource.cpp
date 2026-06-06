@@ -4,8 +4,10 @@
 
 namespace SKIRNIR_NAMESPACE
 {
-    JsonFileSource::JsonFileSource(std::filesystem::path path) :
-        mPath(std::move(path))
+    JsonFileSource::JsonFileSource(std::filesystem::path path,
+                                   std::int64_t          maxSize) :
+        mPath(std::move(path)),
+        mMaxSize(maxSize)
     {
     }
 
@@ -13,7 +15,7 @@ namespace SKIRNIR_NAMESPACE
     {
         if (!mLoaded)
         {
-            mContent = detail::ReadFileOrThrow(mPath);
+            mContent = detail::ReadFileOrThrow(mPath, mMaxSize);
             mElement = detail::ParseOrThrow(
                 mParser, mContent, "config file '" + mPath.string() + "'");
             mLoaded  = true;

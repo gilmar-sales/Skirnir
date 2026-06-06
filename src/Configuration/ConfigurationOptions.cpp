@@ -1,6 +1,7 @@
 #include "Skirnir/Configuration/ConfigurationOptions.hpp"
 
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -98,7 +99,13 @@ namespace SKIRNIR_NAMESPACE
         {
             uint64_t v = 0;
             if (el->get_uint64().get(v) == simdjson::SUCCESS)
+            {
+                constexpr uint64_t kMax =
+                    static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+                if (v > kMax)
+                    return defaultValue;
                 return static_cast<int64_t>(v);
+            }
         }
         if (el->is_double())
         {
