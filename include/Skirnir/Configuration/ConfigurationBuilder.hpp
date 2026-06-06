@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "IConfigurationSource.hpp"
+#include "Skirnir/Configuration/IConfigurationSource.hpp"
 
 namespace SKIRNIR_NAMESPACE
 {
