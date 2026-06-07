@@ -1,0 +1,10 @@
+add_executable(AsyncTimer timer/main.cpp)
+target_link_libraries(AsyncTimer skirnir::skirnir)
+add_executable(AsyncScope scope/main.cpp)
+target_link_libraries(AsyncScope skirnir::skirnir)
+
+if(SKIRNIR_ENABLE_ASIO)
+  add_executable(AsyncAsioEcho asio_echo/main.cpp)
+target_link_libraries(AsyncAsioEcho skirnir::skirnir)
+  target_compile_definitions(AsyncAsioEcho PRIVATE SKIRNIR_ASIO_ENABLED=1)
+endif()

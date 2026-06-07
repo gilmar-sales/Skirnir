@@ -4,6 +4,7 @@
 #include <ranges>
 #include <type_traits>
 
+#include "Skirnir/Async/AsyncApplication.hpp"
 #include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/ConstructorArgumentTraits.hpp"
 #include "Skirnir/Common/Keyed.hpp"
@@ -90,6 +91,43 @@ namespace SKIRNIR_NAMESPACE
         template <typename T>
             requires(std::is_base_of_v<IApplication, T>)
         Arc<T> Build()
+        {
+            mServiceCollection->AddSingleton(mConfigurationBuilder->Build());
+
+            for (const auto extension : mExtensions | std::views::values)
+                extension->ConfigureServices(*mServiceCollection);
+
+            mServiceCollection->AddSingleton<T>();
+
+            const auto serviceProvider =
+                mServiceCollection->CreateServiceProvider();
+
+            for (const auto& extension : mExtensions | std::views::values)
+            {
+                extension->UseServices(*serviceProvider);
+            }
+
+            auto app = serviceProvider->GetService<T>();
+
+            return app;
+        }
+
+        /**
+         * @brief Builds and returns an async application instance.
+         *
+         * Performs the same service-registration sequence as
+         * @c Build<T>() and then resolves the application as an
+         * @c IAsyncApplication. The returned application is *not*
+         * automatically driven — use @c AsyncApplicationHost::Run or
+         * invoke @c IAsyncApplication::RunAsync manually.
+         *
+         * @tparam T The application type, must derive from
+         *           @c IAsyncApplication
+         * @return   The resolved async application instance
+         */
+        template <typename T>
+            requires(std::is_base_of_v<IAsyncApplication, T>)
+        Arc<T> BuildAsync()
         {
             mServiceCollection->AddSingleton(mConfigurationBuilder->Build());
 

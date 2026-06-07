@@ -8,6 +8,7 @@ project(Skirnir LANGUAGES CXX VERSION 0.16.1)
 set(CMAKE_CXX_STANDARD 26)
 
 option(SKIRNIR_USE_FMT "Use the fmt library for logging" OFF)
+option(SKIRNIR_ENABLE_ASIO "Enable the Asio adapter and asio-based examples/tests" ON)
 
 if(NOT TARGET skirnir)
 
@@ -51,6 +52,19 @@ if(NOT TARGET skirnir)
   elseif(CMAKE_COMPILER_IS_GNUCXX)
     target_link_libraries(skirnir stdc++exp)
   endif()
+
+  if(SKIRNIR_ENABLE_ASIO)
+    FetchContent_Declare(
+      asiocmake
+      GIT_REPOSITORY "https://github.com/gilmar-sales/asio.cmake.git"
+      GIT_TAG "main"
+    )
+    set(ASIO_STANDALONE ON CACHE BOOL "" FORCE)
+    set(ASIO_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASIO_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(asiocmake)
+    target_link_libraries(skirnir asio::asio)
+  endif()
 endif()
 
 target_include_directories(skirnir PUBLIC include)
@@ -79,6 +93,9 @@ endif()
 
 if(${BUILD_SKIRNIR_EXAMPLES})
   add_subdirectory(examples)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/async/CMakeLists.txt")
+    add_subdirectory(examples/async)
+  endif()
 endif()
 
 if(${BUILD_SKIRNIR_TESTS})
