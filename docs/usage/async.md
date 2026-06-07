@@ -1,8 +1,7 @@
 # Async / Coroutines
 
 Skirnir provides first-class C++26 coroutine support. The core async types
-are header-only and have **no asio dependency** — asio is integrated through
-an optional adapter header.
+are header-only.
 
 ## Quick Start
 
@@ -118,19 +117,6 @@ inline_scheduler.schedule(handle);   // resumes inline
 
 Custom schedulers (thread pools, executors) implement the same concept.
 
-## Asio Adapter (Optional)
-
-Enable with `SKIRNIR_ENABLE_ASIO=ON` at CMake configure time. This fetches
-asio standalone and exposes `Skirnir/Async/AsioAdapter.hpp`:
-
-```cpp
-asio::io_context ctx;
-skr::AsioScheduler sched(ctx.get_executor());
-
-// Resume on the asio executor:
-sched.schedule(coroutine_handle);
-```
-
 ## Limitations (v1)
 
 - `when_all` and `when_any` are sequential — a true concurrent fan-out
@@ -138,5 +124,4 @@ sched.schedule(coroutine_handle);
 - `LoggerOptions::BeginScope` is per-thread. If a task resumes on a
   different thread, the scope name will not be inherited.
 - The `Delay` helper uses `std::async` + a detached `std::thread` and is
-  intended for tests and simple cases. Use asio for production-grade
-  timers.
+  intended for tests and simple cases.

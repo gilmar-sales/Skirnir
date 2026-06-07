@@ -21,8 +21,4 @@ add_executable(SkirnirTest_run ${TESTS_SRC})
 
 target_link_libraries(SkirnirTest_run skirnir::skirnir gtest gtest_main)
 
-if(SKIRNIR_ENABLE_ASIO)
-  target_compile_definitions(SkirnirTest_run PRIVATE SKIRNIR_ASIO_ENABLED=1)
-endif()
-
 gtest_discover_tests(SkirnirTest_run)

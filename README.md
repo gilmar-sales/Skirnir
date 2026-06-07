@@ -124,5 +124,4 @@ sp->PrintDiagnostics(std::cout);
 ## Async / Coroutines
 
 Skirnir ships a pure-C++26 coroutine runtime (`skr::Task<T>`, `co_await`,
-cancellation via `std::stop_token`) and an optional asio adapter
-(`SKIRNIR_ENABLE_ASIO=ON`). See `docs/usage/async.md` for the full guide.
+cancellation via `std::stop_token`). See `docs/usage/async.md` for the full guide.
