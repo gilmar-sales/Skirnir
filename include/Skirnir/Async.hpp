@@ -16,9 +16,6 @@
 #include "Skirnir/Async/WhenAll.hpp"
 #include "Skirnir/Common/Namespace.hpp"
 
-#include "Skirnir/Async/AsioAdapter.hpp"
-
-
 namespace SKIRNIR_NAMESPACE
 {
     /**

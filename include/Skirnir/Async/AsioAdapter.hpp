@@ -5,6 +5,7 @@
 
 #include "asio/any_io_executor.hpp"
 #include "asio/async_result.hpp"
+#include "asio/post.hpp"
 
 #include "Skirnir/Async/Scheduler.hpp"
 #include "Skirnir/Async/Task.hpp"
@@ -62,8 +63,7 @@ namespace SKIRNIR_NAMESPACE
         void await_suspend(std::coroutine_handle<> h, Scheduler sched)
         {
             asio::async_initiate<CompletionToken, void()>(
-                [h, sched](auto&&... callbacks) {
-                    (void) callbacks;
+                [h, sched](auto&&...) {
                     sched.schedule(h);
                 },
                 mToken);

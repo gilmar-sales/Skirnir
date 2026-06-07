@@ -1,4 +1,5 @@
 #include <Skirnir/Async.hpp>
+#include <Skirnir/Async/AsioAdapter.hpp>
 #include <Skirnir/Common/Arc.hpp>
 #include <Skirnir/DependencyInjection/ApplicationBuilder.hpp>
 #include <Skirnir/Logging/Logger.hpp>
@@ -44,7 +45,7 @@ class AsioEchoApp : public skr::IAsyncApplication
             }
         });
 
-        asio::steady_timer timer(ctx, std::chrono::milliseconds(200));
+        asio::steady_timer timer(ctx, std::chrono::seconds(200));
         timer.async_wait([&](std::error_code) { ctx.stop(); });
         ctx.run();
     }
@@ -75,5 +76,6 @@ int main()
     auto app = skr::ApplicationBuilder()
                    .WithExtension<skr::LoggingExtension>()
                    .BuildAsync<AsioEchoApp>();
+
     return skr::AsyncApplicationHost::Run(*app);
 }
