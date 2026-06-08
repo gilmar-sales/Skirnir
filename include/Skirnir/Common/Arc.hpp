@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -69,12 +70,6 @@ namespace SKIRNIR_NAMESPACE
         inline void arc_dispose_destroy_in_place(void* payload) noexcept
         {
             static_cast<T*>(payload)->~T();
-        }
-
-        template <typename T>
-        inline void arc_destroy_combined(ArcControlBlock* cb) noexcept
-        {
-            ::operator delete(cb);
         }
     } // namespace detail
 
@@ -289,17 +284,50 @@ namespace SKIRNIR_NAMESPACE
     template <typename T>
     inline constexpr bool is_arc_v = is_arc<T>::value;
 
+    namespace detail
+    {
+        struct ArcAllocHeader
+        {
+            void* raw;
+        };
+
+        template <typename T>
+        inline void arc_aligned_destroy(ArcControlBlock* cb) noexcept
+        {
+            auto* hdr = reinterpret_cast<ArcAllocHeader*>(
+                reinterpret_cast<char*>(cb) - sizeof(ArcAllocHeader));
+            ::operator delete(hdr->raw);
+        }
+    }
+
     template <typename T, typename... TArgs>
         requires(std::is_constructible_v<T, TArgs...>)
     inline Arc<T> MakeArc(TArgs&&... args)
     {
-        void* mem = ::operator new(sizeof(detail::ArcControlBlock) + sizeof(T));
+        constexpr std::size_t header_size  = sizeof(detail::ArcAllocHeader);
+        constexpr std::size_t cb_size      = sizeof(detail::ArcControlBlock);
+        constexpr std::size_t payload_size = sizeof(T);
+        constexpr std::size_t payload_align = alignof(T) > alignof(detail::ArcControlBlock)
+                                                   ? alignof(T)
+                                                   : alignof(detail::ArcControlBlock);
 
-        auto* cb = ::new (mem) detail::ArcControlBlock();
-        T*    obj =
-            ::new (reinterpret_cast<char*>(mem) +
-                   sizeof(detail::ArcControlBlock))
-                T(std::forward<TArgs>(args)...);
+        std::size_t size = header_size + cb_size + payload_size + payload_align;
+        void*       raw  = ::operator new(size);
+
+        std::uintptr_t raw_addr     = reinterpret_cast<std::uintptr_t>(raw);
+        std::uintptr_t payload_addr =
+            (raw_addr + header_size + cb_size + payload_align - 1) &
+            ~(std::uintptr_t(payload_align) - 1);
+        std::uintptr_t cb_addr     = payload_addr - cb_size;
+        std::uintptr_t header_addr = cb_addr - header_size;
+
+        auto* hdr = ::new (reinterpret_cast<void*>(header_addr))
+            detail::ArcAllocHeader { raw };
+
+        auto* cb  = ::new (reinterpret_cast<void*>(cb_addr))
+            detail::ArcControlBlock();
+        T*    obj = ::new (reinterpret_cast<void*>(payload_addr))
+                              T(std::forward<TArgs>(args)...);
 
         if constexpr (std::is_base_of_v<enable_arc_from_this<T>, T>)
         {
@@ -309,7 +337,7 @@ namespace SKIRNIR_NAMESPACE
 
         cb->payload = obj;
         cb->dispose = &detail::arc_dispose_destroy_in_place<T>;
-        cb->destroy = &detail::arc_destroy_combined<T>;
+        cb->destroy = &detail::arc_aligned_destroy<T>;
         cb->strong.store(1, std::memory_order_relaxed);
         cb->weak.store(1, std::memory_order_relaxed);
 

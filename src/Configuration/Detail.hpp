@@ -526,7 +526,7 @@ namespace SKIRNIR_NAMESPACE::detail
             cb->dispose =
                 &skr::detail::arc_dispose_destroy_in_place<JsonValue>;
             cb->destroy =
-                &skr::detail::arc_destroy_combined<JsonValue>;
+                &skr::detail::arc_aligned_destroy<JsonValue>;
             cb->strong.store(1, std::memory_order_relaxed);
             cb->weak.store(1, std::memory_order_relaxed);
             return Arc<JsonValue>(obj, cb);
