@@ -26,6 +26,8 @@
 
 namespace SKIRNIR_NAMESPACE::detail
 {
+    extern "C" char** environ;
+
     // Intermediate merge representation; built from simdjson elements
     // and serialized back to a JSON string for the final parse.
     struct JsonValue;
@@ -658,7 +660,6 @@ namespace SKIRNIR_NAMESPACE::detail
         }
         ::FreeEnvironmentStringsA(block);
 #else
-        extern char** environ;
         for (char** p = environ; p && *p; ++p)
         {
             std::string_view entry(*p);
