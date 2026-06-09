@@ -517,21 +517,7 @@ namespace SKIRNIR_NAMESPACE::detail
         const std::map<std::string, std::string>& flat)
     {
         auto makeVal = [](JsonValue v) -> Arc<JsonValue> {
-            void* mem = ::operator new(
-                sizeof(skr::detail::ArcControlBlock) + sizeof(JsonValue));
-            auto* cb = ::new (mem) skr::detail::ArcControlBlock();
-            auto* obj = ::new (
-                reinterpret_cast<char*>(mem) +
-                sizeof(skr::detail::ArcControlBlock))
-                JsonValue(std::move(v));
-            cb->payload = obj;
-            cb->dispose =
-                &skr::detail::arc_dispose_destroy_in_place<JsonValue>;
-            cb->destroy =
-                &skr::detail::arc_aligned_destroy<JsonValue>;
-            cb->strong.store(1, std::memory_order_relaxed);
-            cb->weak.store(1, std::memory_order_relaxed);
-            return Arc<JsonValue>(obj, cb);
+            return skr::MakeArc<JsonValue>(std::move(v));
         };
         auto root = makeVal(JsonValue::FromObject());
         for (const auto& [k, v] : flat)
