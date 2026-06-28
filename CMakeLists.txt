@@ -79,9 +79,6 @@ endif()
 
 if(${BUILD_SKIRNIR_EXAMPLES})
   add_subdirectory(examples)
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/async/CMakeLists.txt")
-    add_subdirectory(examples/async)
-  endif()
 endif()
 
 if(${BUILD_SKIRNIR_TESTS})

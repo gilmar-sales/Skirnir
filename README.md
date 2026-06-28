@@ -120,8 +120,3 @@ auto sp = serviceCollection.CreateServiceProvider();
 sp->ValidateOnBuild();
 sp->PrintDiagnostics(std::cout);
 ```
-
-## Async / Coroutines
-
-Skirnir ships a pure-C++26 coroutine runtime (`skr::Task<T>`, `co_await`,
-cancellation via `std::stop_token`). See `docs/usage/async.md` for the full guide.

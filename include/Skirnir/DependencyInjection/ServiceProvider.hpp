@@ -6,7 +6,6 @@
 #include <string_view>
 #include <vector>
 
-#include "Skirnir/Async/Task.hpp"
 #include "Skirnir/Common/Arc.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
 #include "Skirnir/Common/Reflection.hpp"
@@ -68,22 +67,6 @@ namespace SKIRNIR_NAMESPACE
                                   refl::type_name<TService>());
             }
             return result;
-        }
-
-        /**
-         * @brief Async counterpart of @c GetService.
-         *
-         * Returns a @c Task that resolves the service when awaited.
-         * The task body keeps a strong reference to the
-         * @c ServiceProvider for its lifetime, so scoped services
-         * resolved through this entry point stay alive until the
-         * task is destroyed.
-         */
-        template <typename TService>
-        Task<Arc<TService>> GetServiceAsync()
-        {
-            auto self = this->shared_from_this();
-            co_return self->GetService<TService>();
         }
 
         /**
