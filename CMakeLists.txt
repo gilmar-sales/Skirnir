@@ -24,7 +24,7 @@ if(NOT TARGET skirnir)
   FetchContent_Declare(
     simdjson
     GIT_REPOSITORY "https://github.com/simdjson/simdjson.git"
-    GIT_TAG "812f8823d233a3189a06d6c117e1794d9c34fced"
+    GIT_TAG "master"
     GIT_SHALLOW TRUE
   )
   set(SIMDJSON_DEVELOPER_MODE OFF CACHE BOOL "" FORCE)
