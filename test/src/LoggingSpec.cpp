@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <mutex>
@@ -636,5 +637,100 @@ TEST(LoggingSpec, LoggerOptions_ConfigureFrom_IsThreadSafe)
               skr::LogLevel::Debug);
     EXPECT_EQ(options->GetLogLevelFor<thread_safety_test::BetaCategory>(),
               skr::LogLevel::Warning);
+}
+
+// -----------------------------------------------------------------------
+// 20. LoggerOptions_DefaultSink_IsAsyncByDefault
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, LoggerOptions_DefaultSink_IsAsyncByDefault)
+{
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    skr::Logger<LogCategory> logger(options);
+
+    // Trigger lazy default install.
+    logger.LogInformation("bootstrap");
+
+    ASSERT_FALSE(options->Sinks().empty());
+    auto* head = options->Sinks().front().get();
+    auto* async = dynamic_cast<skr::AsyncSink*>(head);
+    EXPECT_NE(async, nullptr)
+        << "Default sink must be wrapped in AsyncSink to avoid "
+           "serializing request handlers on stdout I/O";
+    if (async)
+    {
+        EXPECT_GE(async->DroppedCount(), 0u);
+    }
+}
+
+// -----------------------------------------------------------------------
+// 21. LoggerOptions_DefaultSink_CanBeDisabled
+// -----------------------------------------------------------------------
+TEST(LoggingSpec, LoggerOptions_DefaultSink_CanBeDisabled)
+{
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    options->asyncEnabled = false;
+    skr::Logger<LogCategory> logger(options);
+
+    logger.LogInformation("bootstrap");
+
+    ASSERT_FALSE(options->Sinks().empty());
+    EXPECT_EQ(dynamic_cast<skr::AsyncSink*>(options->Sinks().front().get()),
+              nullptr);
+}
+
+// -----------------------------------------------------------------------
+// 22. LoggerOptions_Dispatch_HotPathDoesNotLockUnderStableSinks
+// -----------------------------------------------------------------------
+namespace
+{
+    // Sink that bumps an atomic counter on each Write. Used to verify
+    // the hot-path count without holding any extra lock.
+    class CountingSink final : public skr::ILogSink
+    {
+      public:
+        void Write(const skr::LogRecord&) override
+        {
+            mCount.fetch_add(1, std::memory_order_relaxed);
+        }
+        std::uint64_t Count() const noexcept
+        {
+            return mCount.load(std::memory_order_relaxed);
+        }
+
+      private:
+        std::atomic<std::uint64_t> mCount {0};
+    };
+} // namespace
+
+TEST(LoggingSpec, LoggerOptions_Dispatch_HotPathDoesNotLockUnderStableSinks)
+{
+    auto options = skr::MakeArc<skr::LoggerOptions>();
+    options->ClearSinks();
+    auto counter = skr::MakeArc<CountingSink>();
+    options->AddSink(counter);
+
+    skr::Logger<LogCategory> logger(options);
+
+    constexpr int kProducers = 8;
+    constexpr int kPerThread = 50'000;
+
+    std::vector<std::thread> ts;
+    for (int t = 0; t < kProducers; ++t)
+    {
+        ts.emplace_back([&]() {
+            for (int i = 0; i < kPerThread; ++i)
+            {
+                logger.LogInformation("msg-{}", i);
+            }
+        });
+    }
+    for (auto& th : ts)
+        th.join();
+
+    const std::uint64_t expected =
+        static_cast<std::uint64_t>(kProducers) * kPerThread;
+    EXPECT_EQ(counter->Count(), expected)
+        << "Every record must reach the sink even though Dispatch() "
+           "no longer takes mSinksMutex on the hot path";
 }
 

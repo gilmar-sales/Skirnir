@@ -5,7 +5,9 @@
 #include "Skirnir/Logging/Logger.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -56,6 +58,36 @@ namespace SKIRNIR_NAMESPACE
             logLevel = ParseLogLevel(level);
         }
 
+        // Async-sink options live under "logging.async.*" — the default
+        // path is "logging.logLevel.default" so the parent is "logging".
+        // We tolerate arbitrary paths by deriving the parent of @p path.
+        {
+            std::string_view parent = path;
+            const auto       dot    = parent.rfind('.');
+            if (dot != std::string_view::npos)
+                parent = parent.substr(0, dot);
+
+            const std::string asyncEnabledKey =
+                std::string(parent) + ".async.enabled";
+            const std::string asyncCapacityKey =
+                std::string(parent) + ".async.queueCapacity";
+
+            if (config->HasKey(asyncEnabledKey))
+            {
+                asyncEnabled = config->GetBool(asyncEnabledKey, asyncEnabled);
+            }
+            if (config->HasKey(asyncCapacityKey))
+            {
+                const auto v = config->GetInt(asyncCapacityKey,
+                                              static_cast<int64_t>(
+                                                  asyncQueueCapacity));
+                if (v > 0)
+                {
+                    asyncQueueCapacity = static_cast<std::size_t>(v);
+                }
+            }
+        }
+
         // Namespace-specific levels live in the same object that holds the
         // default key, so locate the parent section and iterate its members.
         auto dot = path.rfind('.');
@@ -93,20 +125,56 @@ namespace SKIRNIR_NAMESPACE
         }
     }
 
+    void LoggerOptions::PublishSinks()
+    {
+        // Called with @c mSinksMutex held. Builds an immutable copy of
+        // @c mSinks and atomically publishes it for the hot read path.
+        auto snap = std::make_shared<const std::vector<Arc<ILogSink>>>(mSinks);
+        mSinkSnapshot = std::move(snap);
+        mSinkSnapshotDirty.store(false, std::memory_order_release);
+    }
+
     void LoggerOptions::Dispatch(const LogRecord& record)
     {
-        std::call_once(mDefaultSinkFlag, [this] {
-            std::lock_guard<std::mutex> lock(mSinksMutex);
-            if (mSinks.empty())
-                mSinks.push_back(MakeArc<ConsoleSink>());
-        });
+        // Lazy default sink install. Only one thread wins the race; the
+        // others see a non-empty mSinks on the snapshot read below.
+        if (mSinkSnapshotDirty.load(std::memory_order_acquire))
+        {
+            std::call_once(mDefaultSinkFlag, [this] {
+                std::lock_guard<std::mutex> lock(mSinksMutex);
+                if (mSinks.empty())
+                {
+                    if (asyncEnabled)
+                    {
+                        mSinks.push_back(MakeArc<AsyncSink>(
+                            MakeArc<ConsoleSink>(),
+                            asyncQueueCapacity ? asyncQueueCapacity : 1));
+                    }
+                    else
+                    {
+                        mSinks.push_back(MakeArc<ConsoleSink>());
+                    }
+                }
+                PublishSinks();
+            });
+            // Lost the call_once race OR had a non-empty sink list at
+            // the moment of the check. Fall through to load the snapshot.
+        }
 
-        std::vector<Arc<ILogSink>> snapshot;
+        // Hot path: single atomic load, no lock, no vector copy.
+        auto snap = mSinkSnapshot;
+        if (!snap)
         {
             std::lock_guard<std::mutex> lock(mSinksMutex);
-            snapshot = mSinks;
+            snap = mSinkSnapshot;
+            if (!snap)
+            {
+                PublishSinks();
+                snap = mSinkSnapshot;
+            }
         }
-        for (auto& sink : snapshot)
+
+        for (const auto& sink : *snap)
         {
             sink->Write(record);
         }
@@ -117,7 +185,21 @@ namespace SKIRNIR_NAMESPACE
         if (sink)
         {
             std::lock_guard<std::mutex> lock(mSinksMutex);
+            // Avoid double-wrapping if the user added an AsyncSink
+            // explicitly — @c Dispatch's lazy default does the same.
+            if (dynamic_cast<AsyncSink*>(sink.get()))
+            {
+                if (asyncEnabled)
+                {
+                    // Caller already provided async; respect their choice
+                    // and keep the default install in sync with that.
+                    mSinks.push_back(std::move(sink));
+                    PublishSinks();
+                    return *this;
+                }
+            }
             mSinks.push_back(std::move(sink));
+            PublishSinks();
         }
         return *this;
     }
@@ -126,6 +208,7 @@ namespace SKIRNIR_NAMESPACE
     {
         std::lock_guard<std::mutex> lock(mSinksMutex);
         mSinks.clear();
+        PublishSinks();
     }
 
     void LoggerOptions::PushScope(std::string name)

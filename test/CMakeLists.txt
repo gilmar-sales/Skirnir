@@ -22,3 +22,8 @@ add_executable(SkirnirTest_run ${TESTS_SRC})
 target_link_libraries(SkirnirTest_run skirnir::skirnir gtest gtest_main)
 
 gtest_discover_tests(SkirnirTest_run)
+
+option(SKIRNIR_BUILD_BENCH "Build the logging microbenchmark" OFF)
+if(${SKIRNIR_BUILD_BENCH})
+  add_subdirectory(bench)
+endif()

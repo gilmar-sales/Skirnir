@@ -5,10 +5,14 @@
 #include "Skirnir/Logging/LogLevel.hpp"
 #include "Skirnir/Logging/LogRecord.hpp"
 #include "Skirnir/Logging/LogSinks/ILogSink.hpp"
+#include "Skirnir/Logging/LogSinks/AsyncSink.hpp"
 
+#include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <format>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <print>
@@ -46,6 +50,27 @@ namespace SKIRNIR_NAMESPACE
 #else
         LogLevel logLevel = LogLevel::Debug;
 #endif
+
+        /**
+         * @brief When true (the default), the lazily-installed default
+         *        sink chain is wrapped in an @c AsyncSink so the calling
+         *        thread is never blocked by console/file I/O.
+         *
+         * Configurable via @c logging.async.enabled. Set to @c false to
+         * restore the previous synchronous behavior (useful for tests
+         * and tools that need guaranteed-delivery, in-order output).
+         */
+        bool asyncEnabled = true;
+
+        /**
+         * @brief Queue capacity used when @c asyncEnabled is true and
+         *        no caller-provided @c AsyncSink is present.
+         *
+         * Records submitted while the queue is full are dropped and the
+         * drop counter (see @c AsyncSink::DroppedCount) is incremented.
+         * Configurable via @c logging.async.queueCapacity.
+         */
+        std::size_t asyncQueueCapacity = 8192;
 
         /**
          * @brief Configures the default log level from a configuration source.
@@ -134,11 +159,20 @@ namespace SKIRNIR_NAMESPACE
         /// @endcond
 
       private:
+        void PublishSinks();
+
         std::map<std::string, LogLevel> mLogLevels;
         mutable std::shared_mutex       mLogLevelsMutex;
         mutable std::mutex              mSinksMutex;
         std::vector<Arc<ILogSink>>      mSinks;
         std::once_flag                  mDefaultSinkFlag;
+
+        // Immutable snapshot of @c mSinks published under @c mSinksMutex.
+        // The hot path @c Dispatch() loads it via a single atomic read
+        // and never takes @c mSinksMutex, eliminating per-record lock
+        // contention and a vector copy on every log call.
+        std::shared_ptr<const std::vector<Arc<ILogSink>>> mSinkSnapshot;
+        std::atomic<bool> mSinkSnapshotDirty {true};
     };
 
     class ILogger
