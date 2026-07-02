@@ -1,6 +1,6 @@
 # Skirnir
 
-Skirnir provides an IoC (Inversion of Control) Container for dependency injection in C++. Skirnir uses [The C++ Type Loophole](https://alexpolt.github.io/type-loophole.html) to automatically extract constructor parameters and enable seamless dependency injection.
+Skirnir provides an IoC (Inversion of Control) Container for dependency injection in C++. Skirnir uses [C++26 compile-time reflection](https://en.cppreference.com/w/cpp/meta) (`std::meta::info`, the splice operator `[: ... :]`, and `^^T`) to automatically extract constructor parameters and enable seamless dependency injection.
 
 ## Features
 
@@ -15,7 +15,7 @@ Skirnir provides an IoC (Inversion of Control) Container for dependency injectio
 - **Diagnostics**: `ValidateOnBuild()` and `PrintDiagnostics(std::ostream&)` for early failure detection
 - **Circular Dependency Detection**: Detects and reports circular dependencies
 - **Logging**: Built-in logging with pluggable sinks (`ConsoleSink`, `FileSink`, `JsonSink`, `AsyncSink`) and scopes/correlation IDs
-- **Reflection**: Uses compile-time type introspection via the C++ Type Loophole to extract service metadata
+- **Reflection**: Uses C++26 compile-time reflection (`std::meta::info`, splice operator `[: ... :]`) to extract service metadata
 - **Applications**: Structured application model with `IApplication` and `ApplicationBuilder`
 - **Extensions**: Modular service registration via composable extensions (includes a ready-made `LoggingExtension`)
 

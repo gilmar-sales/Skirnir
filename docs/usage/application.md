@@ -31,7 +31,7 @@ The `IApplication` singleton is automatically registered when using `Application
 
 ```cpp
 auto app = skr::ApplicationBuilder()
-    .AddExtension<MyExtension>()
+    .WithExtension<MyExtension>()
     .Build<MyApp>();
 
 app->Run();
@@ -44,22 +44,22 @@ You can register services directly via the builder's service collection:
 ```cpp
 auto appBuilder = skr::ApplicationBuilder();
 
-appBuilder.GetServiceCollection()
-    ->AddSingleton<MyService>()
-    ->AddTransient<IRepository, Repository>();
+(*appBuilder.GetServiceCollection())
+    .AddSingleton<MyService>()
+    .AddTransient<IRepository, Repository>();
 
 appBuilder.Build<MyApp>();
 ```
 
 ### Extension Composition
 
-Use `AddExtension<T>()` to add extension modules. Extensions can be added with or without a configuration callback:
+Use `WithExtension<T>()` to add extension modules. Extensions can be added with or without a configuration callback:
 
 ```cpp
 skr::ApplicationBuilder()
-    .AddExtension<DatabaseExtension>()  // Uses defaults
-    .AddExtension<LoggingExtension>([](Arc<LoggingExtension> ext) {
-        ext->SetLevel(skr::LogLevel::Debug);
+    .WithExtension<DatabaseExtension>()  // Uses defaults
+    .WithExtension<LoggingExtension>([](skr::LoggingExtension& ext) {
+        ext.SetLevel(skr::LogLevel::Debug);
     })
     .Build<MyApp>();
 ```

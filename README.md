@@ -1,7 +1,40 @@
 # Skirnir
 
-Skirnir provides an IoC Container. It uses [The C++ Type Loophole](https://alexpolt.github.io/type-loophole.html) to get
-constructor parameters and to allow registering services for **dependency injection**
+Skirnir provides an IoC Container. It uses [C++26 compile-time reflection](https://en.cppreference.com/w/cpp/meta)
+(`std::meta::info`, the splice operator `[: ... :]`, and `^^T`) to extract
+constructor parameters and to allow registering services for **dependency injection**.
+
+## Features
+
+- **Automatic Dependency Injection**: constructor parameters are resolved
+  through compile-time introspection.
+- **Multiple Lifetimes**: `Singleton`, `Scoped`, and `Transient`.
+- **Multi-Registration**: register and resolve multiple implementations
+  of a contract with `GetServices<T>()` or `std::vector<Arc<T>>`
+  injection.
+- **Keyed / Named Services**: distinguish implementations by string key,
+  resolve with `GetKeyedService<T>(key)` or `Keyed<T, "key">` ctor
+  injection.
+- **Optional Dependencies**: `std::optional<Arc<T>>` ctor parameters
+  resolve to `std::nullopt` when `T` is not registered.
+- **Non-throwing Resolution**: `TryGetService<T>()` and
+  `TryGetKeyedService<T>(key)` return `std::optional<Arc<T>>`.
+- **Captive-Dependency Detection**: `ValidateOnBuild()` flags Singletons
+  that transitively depend on Scoped services.
+- **Configuration**: strongly-typed JSON configuration with `Bind<T>`,
+  typed getters, sub-sections, environment variables, and source
+  chaining.
+- **Diagnostics**: `ValidateOnBuild()` and `PrintDiagnostics(std::ostream&)`
+  for early failure detection and dependency-graph inspection.
+- **Circular Dependency Detection**: detected and reported at resolution
+  time.
+- **Logging**: built-in logging with pluggable sinks (`ConsoleSink`,
+  `FileSink`, `JsonSink`, `AsyncSink`), thread-local scopes, and a
+  ready-made `LoggingExtension`.
+- **Applications**: structured application model with `IApplication` and
+  `ApplicationBuilder`.
+- **Extensions**: modular service registration via composable
+  extensions.
 
 # Lifetimes
 
@@ -56,6 +89,10 @@ sc.AddTransient<IPlugin, PluginA>()
   .AddTransient<PluginHost>();
 ```
 
+For keyed implementations of the same contract, see
+[Keyed Services](docs/usage/keyed-services.md). A complete working
+example lives in [`examples/multi_impl/`](examples/multi_impl).
+
 ## Injecting
 
 ```cpp
@@ -89,7 +126,11 @@ auto db = config->Bind<DatabaseOptions>("db");
 
 ## Logging
 
-Skirnir uses the [fmt](https://github.com/fmtlib/fmt) to provide global logging capabilities, every service added will also add a `skr::Logger<TService>`. This logger can be injected and produces logging messages with the typename of the template argument:
+Skirnir provides global logging capabilities. Every registered service
+automatically receives a `skr::Logger<TService>` which can be injected as
+a constructor parameter. The logger formats messages with `std::format`
+by default (and [fmt](https://github.com/fmtlib/fmt) when the project is
+configured with `-DSKIRNIR_USE_FMT=ON`):
 
 ```cpp
 class Repository : public IRepository

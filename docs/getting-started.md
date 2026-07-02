@@ -2,14 +2,18 @@
 
 ## Requirements
 
-- C++20 or later compiler
-- CMake 3.16 or later
-- Optional: fmt library for enhanced logging (enable with `SKIRNIR_USE_FMT`)
+- C++26 capable compiler (project enables `CXX_STANDARD 26` and uses
+  compile-time reflection — Clang/GCC with `-freflection`, MSVC with
+  `/experimental:reflection`)
+- CMake 3.28 or later
+- simdjson (fetched automatically by `FetchContent`)
+- Optional: `fmt` library for enhanced logging. Enable with
+  `-DSKIRNIR_USE_FMT=ON` when configuring Skirnir as a subdirectory.
 
 ## Building
 
 ```bash
-git clone https://github.com/Skirnir/Skirnir.git
+git clone https://github.com/gilmar-sales/Skirnir.git
 mkdir build && cd build
 cmake ..
 cmake --build .
@@ -18,10 +22,21 @@ cmake --build .
 ## Running Tests
 
 ```bash
-cmake .. -DSKIRNIR_BUILD_TESTS=ON
+cmake .. -DBUILD_SKIRNIR_TESTS=ON
 cmake --build .
 ctest
 ```
+
+## Building the Examples
+
+```bash
+cmake .. -DBUILD_SKIRNIR_EXAMPLES=ON
+cmake --build .
+```
+
+The top-level `CMakeLists.txt` enables tests and examples by default when
+Skirnir is the project root. When consuming Skirnir as a subdirectory the
+options default to `OFF`.
 
 ## Basic Usage
 

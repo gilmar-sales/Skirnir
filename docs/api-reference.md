@@ -147,6 +147,27 @@ Arc<ServiceProvider> GetServiceProvider() const;
 
 ---
 
+## Injection Wrappers
+
+The container inspects each constructor parameter at resolution time and
+dispatches based on its type:
+
+| Wrapper                       | Resolved by                                                   |
+| ----------------------------- | ------------------------------------------------------------- |
+| `Arc<T>`                      | `GetService<T>()` — first registration for `T`.               |
+| `std::vector<Arc<T>>`         | `GetServices<T>()` — every registration for `T`.              |
+| `std::optional<Arc<T>>`       | `TryGetService<T>()` — `nullopt` when `T` is not registered.  |
+| `Keyed<T, NTTP>`              | `GetKeyedService<T>(NTTP)` — see [Keyed Services](usage/keyed-services.md). |
+
+`Keyed<T, NTTP>` currently only accepts a NTTP that points to a static
+character array (`inline constexpr char key[] = "...";`). Other NTTP
+types are accepted by the template but not resolved by the container.
+
+`std::optional<Keyed<T, "k">>` is **not** special-cased; nested optional
+wrappers around `Keyed` will fail to resolve.
+
+---
+
 ## Logger
 
 ### Log Levels
@@ -291,9 +312,17 @@ ConfigurationBuilder& AddJsonString(std::string_view json);
 ConfigurationBuilder& AddSource(Arc<IConfigurationSource> source);
 ConfigurationBuilder& AddInMemory(
     std::initializer_list<std::pair<std::string, std::string>> entries);
+ConfigurationBuilder& AddEnvironmentVariables(std::string prefix = {});
 
 Arc<ConfigurationOptions> Build();
 ```
+
+`AddEnvironmentVariables(prefix)` registers an `EnvironmentVariablesSource`
+that reads from `std::getenv`. With a non-empty prefix only matching
+variables are loaded (the prefix is stripped from the resulting key), and
+double underscores (`__`) are translated to dots (`.`) so nested sections
+can be expressed (`SKIRNIR_DB__HOST=db.local` → `{ "db": { "host":
+"db.local" } }`).
 
 ### ConfigurationOptions
 
@@ -358,7 +387,33 @@ auto app = ApplicationBuilder().Build<MyApplication>();
 ### Methods
 
 ```cpp
+Arc<ServiceCollection> GetServiceCollection();
+
+template <typename TExtension>
+    requires(std::is_base_of_v<IExtension, TExtension>)
+ApplicationBuilder& WithExtension();
+
+template <typename TExtension>
+    requires(std::is_base_of_v<IExtension, TExtension>)
+ApplicationBuilder& WithExtension(
+    std::function<void(TExtension&)> configureExtensionFunc);
+
+ApplicationBuilder& WithConfiguration(
+    std::function<void(ConfigurationBuilder&)> configureFunc);
+
 template <typename TApplication>
     requires(std::is_base_of_v<IApplication, TApplication>)
 Arc<TApplication> Build();
 ```
+
+`WithExtension` registers an extension, calling its `Attach` hook
+immediately and the `ConfigureServices` / `UseServices` hooks during
+`Build()`. Calling it twice for the same `TExtension` retrieves the
+existing instance and re-runs the configuration callback.
+
+`WithConfiguration` exposes the underlying `ConfigurationBuilder` so
+configuration sources can be registered inline with services.
+
+`Build()` registers the application type as a singleton, resolves the
+configuration, runs every extension's `UseServices` hook, and returns
+the resolved application instance.

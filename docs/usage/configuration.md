@@ -31,12 +31,33 @@ auto dbHost = db->GetString("host");
 `IConfigurationSource` is the abstract base for configuration sources. The
 builder accepts any number of them, merged in order:
 
-| Method                       | Description                                |
-| ---------------------------- | ------------------------------------------ |
-| `AddJsonFile(path)`          | Load a JSON file.                          |
-| `AddJsonString(text)`        | Parse a JSON string literal.               |
-| `AddInMemory({ {"k","v"} })` | Flat key/value entries (dotted keys nest). |
-| `AddSource(ref)`             | Register a custom `IConfigurationSource`.  |
+| Method                          | Description                                |
+| ------------------------------- | ------------------------------------------ |
+| `AddJsonFile(path)`             | Load a JSON file.                          |
+| `AddJsonString(text)`           | Parse a JSON string literal.               |
+| `AddInMemory({ {"k","v"} })`    | Flat key/value entries (dotted keys nest). |
+| `AddEnvironmentVariables(...)`  | Read from process env vars (see below).    |
+| `AddSource(ref)`                | Register a custom `IConfigurationSource`.  |
+
+### Environment Variables
+
+`AddEnvironmentVariables(prefix)` loads every process environment
+variable whose name starts with `prefix` (when non-empty) and strips the
+prefix from the resulting key. Double underscores (`__`) are translated
+to dots (`.`) so nested sections can be expressed in flat env names:
+
+```cpp
+auto config = skr::ConfigurationBuilder()
+                  .AddEnvironmentVariables("SKIRNIR_")
+                  .Build();
+// SKIRNIR_DB__HOST=db.local -> config->GetString("db.host")
+```
+
+Values are coerced: `"true"`/`"false"` become booleans, parseable
+integers and doubles become numbers, everything else stays a string.
+`EnvironmentVariablesSource` is a regular `IConfigurationSource` and can
+be added through `AddSource` directly if you need to construct it
+yourself.
 
 ### Chaining
 
@@ -114,6 +135,6 @@ key in the same object as a namespace-specific level.
 
 ## Build Option
 
-Set `SKIRNIR_USE_SIMDJSON=OFF` to build without simdjson. In that mode the
-strongly-typed binding and `GetSection` APIs are unavailable; the string
-`GetValue`/`HasKey` API still works for basic use cases.
+Skirnir always links simdjson (fetched automatically by `FetchContent`).
+The configuration, `Bind<T>()`, and `GetSection` APIs are therefore
+always available — there is no "without simdjson" build mode.

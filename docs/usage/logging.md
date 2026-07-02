@@ -36,7 +36,7 @@ class Repository : public IRepository
 ## Output
 
 ```
-[Information] 2025-03-12 21:55:19.650921 'Repository': Add
+[Information] 2025-03-12 21:55:19.650921540 'Repository': Add
 ```
 
 The default sink is a `ConsoleSink` that writes to `std::cout`.

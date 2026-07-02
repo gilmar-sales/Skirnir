@@ -10,30 +10,32 @@ Create a class that inherits from `IExtension`:
 class DatabaseExtension : public skr::IExtension
 {
 public:
-    void Attach(skr::ApplicationBuilder& applicationBuilder) override
+    void ConfigureServices(skr::ServiceCollection& services) override
     {
+        services.AddSingleton<IDatabase, SqlDatabase>();
     }
 
-    void ConfigureServices(Arc<skr::ServiceCollection> services) override
+    void UseServices(skr::ServiceProvider& serviceProvider) override
     {
-        services->AddSingleton<IDatabase, SqlDatabase>();
-    }
-
-    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
-    {
-        auto db = serviceProvider->GetService<IDatabase>();
+        auto db = serviceProvider.GetService<IDatabase>();
         db->Initialize();
     }
 };
 ```
 
+> Note: `Attach`, `ConfigureServices` and `UseServices` are `protected`
+> hooks (see `include/Skirnir/DependencyInjection/Extension.hpp`). They take
+> the builder/collection/provider **by reference**, not by `Arc`. The
+> `ApplicationBuilder` calls them for you; user code never needs to invoke
+> them directly.
+
 ### Lifecycle Methods
 
 | Method | When Called | Purpose |
 |--------|-------------|---------|
-| `Attach` | When extension is added to `ApplicationBuilder` | Configure the builder itself |
-| `ConfigureServices` | When extension is added to `ApplicationBuilder` | Register services |
-| `UseServices` | After `ServiceProvider` is created, before `Build` returns | Initialize services using the provider |
+| `Attach` | When extension is added to `ApplicationBuilder` (via `WithExtension`) | Configure the builder itself |
+| `ConfigureServices` | Before `ServiceProvider` is created | Register services into the `ServiceCollection&` |
+| `UseServices` | After `ServiceProvider` is created, before `Build` returns | Initialize services using the `ServiceProvider&` |
 
 ### Attaching to ApplicationBuilder
 
@@ -46,9 +48,9 @@ public:
         mBuilder = &applicationBuilder;
     }
 
-    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
+    void UseServices(skr::ServiceProvider& serviceProvider) override
     {
-        auto router = serviceProvider->GetService<IRouter>();
+        auto router = serviceProvider.GetService<IRouter>();
         mBuilder->GetServiceCollection()->AddSingleton(std::move(router));
     }
 
@@ -59,12 +61,12 @@ private:
 
 ## Adding Extensions
 
-Use `AddExtension<T>()` to register an extension:
+Use `WithExtension<T>()` to register an extension:
 
 ```cpp
 skr::ApplicationBuilder()
-    .AddExtension<DatabaseExtension>()
-    .AddExtension<LoggingExtension>()
+    .WithExtension<DatabaseExtension>()
+    .WithExtension<LoggingExtension>()
     .Build<MyApp>();
 ```
 
@@ -74,8 +76,8 @@ Pass a callback to configure the extension before it's attached:
 
 ```cpp
 skr::ApplicationBuilder()
-    .AddExtension<LoggingExtension>([](Arc<LoggingExtension> ext) {
-        ext->SetLevel(skr::LogLevel::Debug);
+    .WithExtension<LoggingExtension>([](skr::LoggingExtension& ext) {
+        ext.SetLevel(skr::LogLevel::Debug);
     })
     .Build<MyApp>();
 ```
@@ -102,14 +104,14 @@ The `IApplication` singleton is registered automatically during `ApplicationBuil
 class CachingExtension : public skr::IExtension
 {
 public:
-    void ConfigureServices(Arc<skr::ServiceCollection> services) override
+    void ConfigureServices(skr::ServiceCollection& services) override
     {
-        services->AddSingleton<ICache, RedisCache>();
+        services.AddSingleton<ICache, RedisCache>();
     }
 
-    void UseServices(Arc<skr::ServiceProvider> serviceProvider) override
+    void UseServices(skr::ServiceProvider& serviceProvider) override
     {
-        mCache = serviceProvider->GetService<ICache>();
+        mCache = serviceProvider.GetService<ICache>();
         mCache->Connect("redis://localhost:6379");
     }
 
