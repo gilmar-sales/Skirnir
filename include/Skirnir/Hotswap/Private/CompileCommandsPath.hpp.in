@@ -1,0 +1,9 @@
+#pragma once
+
+namespace skr::hotswap::detail
+{
+    // Filled in by CMake. The path to the compile_commands.json produced by the
+    // current build, or empty if CMAKE_EXPORT_COMPILE_COMMANDS is OFF.
+    inline constexpr const char* kDefaultCompileCommandsJson =
+        "@SKIRNIR_COMPILE_COMMANDS_JSON@";
+}

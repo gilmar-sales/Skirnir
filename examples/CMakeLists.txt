@@ -5,3 +5,5 @@ add_executable(OptionsBinding options_binding/main.cpp)
 target_link_libraries(SimpleInjection skirnir::skirnir)
 target_link_libraries(MultiImpl skirnir::skirnir)
 target_link_libraries(OptionsBinding skirnir::skirnir)
+
+add_subdirectory(hot_swap_demo)

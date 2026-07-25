@@ -71,6 +71,19 @@ namespace SKIRNIR_NAMESPACE
         {
             static_cast<T*>(payload)->~T();
         }
+
+        template <typename T>
+        inline void arc_dispose_heap(void* payload) noexcept
+        {
+            static_cast<T*>(payload)->~T();
+        }
+
+        template <typename T>
+        inline void arc_destroy_heap(ArcControlBlock* cb) noexcept
+        {
+            ::operator delete(cb->payload);
+            delete cb;
+        }
     } // namespace detail
 
     template <typename T>
@@ -342,6 +355,28 @@ namespace SKIRNIR_NAMESPACE
         cb->weak.store(1, std::memory_order_relaxed);
 
         return Arc<T>(obj, cb);
+    }
+
+    template <typename T>
+    inline Arc<T> MakeArc(T* ptr)
+    {
+        if (!ptr)
+            return Arc<T>();
+
+        auto* cb = new detail::ArcControlBlock();
+        cb->payload = ptr;
+        cb->dispose = &detail::arc_dispose_heap<T>;
+        cb->destroy = &detail::arc_destroy_heap<T>;
+        cb->strong.store(1, std::memory_order_relaxed);
+        cb->weak.store(1, std::memory_order_relaxed);
+
+        if constexpr (std::is_base_of_v<enable_arc_from_this<T>, T>)
+        {
+            static_cast<enable_arc_from_this<T>*>(ptr)
+                ->_skr_attach_control_block(ptr, cb);
+        }
+
+        return Arc<T>(ptr, cb);
     }
 
     template <typename TDest, typename TSource>
