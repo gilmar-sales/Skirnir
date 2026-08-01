@@ -9,6 +9,7 @@
     #include <cstdio>
 
     #include "Skirnir/Hotswap/cmd-shell/CmdShell_unix.hpp"
+    #include "Skirnir/Hotswap/Util.hpp"
 
 namespace skr::hotswap
 {

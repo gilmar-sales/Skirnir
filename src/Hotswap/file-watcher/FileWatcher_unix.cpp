@@ -1,4 +1,4 @@
-#ifdef __LINUX__
+#ifdef __linux__
     #include <fcntl.h>
     #include <poll.h>
     #include <unistd.h>
@@ -48,7 +48,7 @@ namespace skr::hotswap
         int mask =
             IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVED_FROM | IN_MOVED_TO;
         int wd = inotify_add_watch(
-            m_NotifyFd, directoryPath.u8string().c_str(), mask);
+            m_NotifyFd, directoryPath.string().c_str(), mask);
         if (wd == -1)
         {
             log::Error() << SKR_HOTSWAP_LOG_PREFIX << "Failed to add directory "

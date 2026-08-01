@@ -187,7 +187,7 @@ namespace skr::hotswap::platform
         return GetErrorString(GetLastError());
     }
 #elif defined(SKR_HOTSWAP_PLATFORM_UNIX)
-    std::string GetErrorString(OsError error)
+    std::string GetErrorString(int error)
     {
         return std::strerror(error);
     }

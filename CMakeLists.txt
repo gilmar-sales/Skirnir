@@ -25,6 +25,10 @@ if(NOT TARGET skirnir)
 
   add_library(skirnir::skirnir ALIAS skirnir)
 
+  # Hot-swapped plugins are shared libraries that link against skirnir; the
+  # static archive must therefore be built as PIC.
+  set_target_properties(skirnir PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
   target_compile_definitions(skirnir PUBLIC -DSKIRNIR_USE_SIMDJSON)
 
   if(NOT ${SKIRNIR_DISABLE_HOTSWAP})
@@ -32,6 +36,8 @@ if(NOT TARGET skirnir)
       target_compile_definitions(skirnir PUBLIC SKR_HOTSWAP_PLATFORM_WIN32=1)
     else()
       target_compile_definitions(skirnir PUBLIC SKR_HOTSWAP_PLATFORM_UNIX=1)
+      find_library(SKIRNIR_UUID_LIBRARY uuid REQUIRED)
+      target_link_libraries(skirnir ${SKIRNIR_UUID_LIBRARY})
     endif()
     target_compile_definitions(skirnir PUBLIC
       SKR_HOTSWAP_CXX_STANDARD=${CMAKE_CXX_STANDARD}
