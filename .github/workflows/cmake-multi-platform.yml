@@ -132,4 +132,4 @@ jobs:
       working-directory: build
       run: |
         export PATH="/c/mingw64-gcc16/bin:$PATH"
-        ctest --build-config ${{ matrix.build_type }}
+        ctest --rerun-failed --output-on-failure --build-config ${{ matrix.build_type }}
