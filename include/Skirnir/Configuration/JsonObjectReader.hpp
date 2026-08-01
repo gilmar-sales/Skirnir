@@ -18,8 +18,6 @@ namespace SKIRNIR_NAMESPACE
     class JsonObjectReader
     {
       public:
-        // Stored by value: dom::object is a lightweight tape_ref, and callers
-        // often pass temporaries from element::get_object().
         explicit JsonObjectReader(simdjson::dom::object obj) : mObj(obj) {}
 
         /** @brief Returns true if @p key is present in the object. */
