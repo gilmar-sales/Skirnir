@@ -18,9 +18,9 @@ namespace SKIRNIR_NAMESPACE
     class JsonObjectReader
     {
       public:
-        explicit JsonObjectReader(const simdjson::dom::object& obj) : mObj(obj)
-        {
-        }
+        // Stored by value: dom::object is a lightweight tape_ref, and callers
+        // often pass temporaries from element::get_object().
+        explicit JsonObjectReader(simdjson::dom::object obj) : mObj(obj) {}
 
         /** @brief Returns true if @p key is present in the object. */
         bool Contains(std::string_view key) const
@@ -60,7 +60,7 @@ namespace SKIRNIR_NAMESPACE
         static constexpr bool
             is_vector_of_string_v<std::vector<std::string, Alloc>> = true;
 
-        const simdjson::dom::object& mObj;
+        simdjson::dom::object mObj;
     };
 
     template <typename T>
@@ -148,8 +148,13 @@ namespace SKIRNIR_NAMESPACE
             // Nested reflected struct.
             if (!el.is_object())
                 return false;
+
+            simdjson::dom::object nestedObj;
+            if (el.get_object().get(nestedObj) != simdjson::SUCCESS)
+                return false;
+
             U                nested {};
-            JsonObjectReader nestedReader(el.get_object());
+            JsonObjectReader nestedReader(nestedObj);
 
             template for (constexpr auto member : std::define_static_array(
                               std::meta::nonstatic_data_members_of(

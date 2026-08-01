@@ -74,14 +74,16 @@ namespace SKIRNIR_NAMESPACE
             {
                 if (!mElement.is_object())
                     return result;
-                obj = mElement.get_object();
+                if (mElement.get_object().get(obj) != simdjson::SUCCESS)
+                    return result;
             }
             else
             {
                 auto sub = Navigate(section);
                 if (!sub || !sub->is_object())
                     return result;
-                obj = sub->get_object();
+                if (sub->get_object().get(obj) != simdjson::SUCCESS)
+                    return result;
             }
 
             JsonObjectReader reader(obj);
