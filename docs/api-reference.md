@@ -128,6 +128,26 @@ bool Contains() const;
 Arc<ServiceScope> CreateServiceScope() const;
 ```
 
+### Late Registration
+
+Register or remove services after `CreateServiceProvider()`. Overloads
+mirror `ServiceCollection` (`AddSingleton` / `AddTransient` / `AddScoped`
+with factory, instance, and contract variants). See
+[Late Registration](usage/late-registration.md).
+
+```cpp
+ServiceProvider& AddSingleton<TService>();
+ServiceProvider& AddTransient<TService>();
+ServiceProvider& AddScoped<TService>();
+// ... contract, factory, and instance overloads
+
+template <typename TService>
+bool Remove();
+```
+
+`Remove<T>()` erases every registration for `T` and evicts that id from
+singleton, keyed-singleton, and live scoped caches.
+
 ---
 
 ## ServiceScope
@@ -136,7 +156,10 @@ Arc<ServiceScope> CreateServiceScope() const;
 
 ```cpp
 ServiceScope(const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
-             const Arc<ServicesCache>&        singletonsCache);
+             const Arc<ServicesCache>&        singletonsCache,
+             const Arc<KeyedServicesCache>&   keyedSingletonsCache,
+             const Arc<ScopeCacheRegistry>&   scopeCacheRegistry,
+             const Arc<ServicesCache>&        scopeCache);
 ```
 
 ### Methods
@@ -144,6 +167,23 @@ ServiceScope(const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
 ```cpp
 Arc<ServiceProvider> GetServiceProvider() const;
 ```
+
+---
+
+## ServiceId
+
+```cpp
+using ServiceId = unsigned long;
+
+ServiceId RegisterTypeName(std::string_view typeName);
+
+template <typename T>
+ServiceId GetServiceId();
+```
+
+`GetServiceId<T>()` caches a dense id from `RegisterTypeName(refl::type_name<T>())`.
+The same type name always maps to the same id in-process (safe across
+static libs / DSOs that share Skirnir).
 
 ---
 

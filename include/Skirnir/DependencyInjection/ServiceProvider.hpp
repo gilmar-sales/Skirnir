@@ -4,6 +4,7 @@
 #include <ostream>
 #include <set>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include "Skirnir/Common/Arc.hpp"
@@ -11,6 +12,7 @@
 #include "Skirnir/Common/Reflection.hpp"
 #include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
 #include "Skirnir/DependencyInjection/ServiceId.hpp"
+#include "Skirnir/DependencyInjection/ServiceRegistration.hpp"
 #include "Skirnir/Logging/Logger.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -42,10 +44,13 @@ namespace SKIRNIR_NAMESPACE
             const Arc<ServicesCache>& scopedsCache = MakeArc<ServicesCache>(),
             const Arc<KeyedServicesCache>& keyedSingletonsCache =
                 MakeArc<KeyedServicesCache>(),
+            const Arc<ScopeCacheRegistry>& scopeCacheRegistry =
+                MakeArc<ScopeCacheRegistry>(),
             const bool isScoped = false) :
             mIsScoped(isScoped), mServiceDefinitionMap(serviceDefinitionMap),
             mSingletonsCache(singletonsCache), mScopeCache(scopedsCache),
-            mKeyedSingletonsCache(keyedSingletonsCache)
+            mKeyedSingletonsCache(keyedSingletonsCache),
+            mScopeCacheRegistry(scopeCacheRegistry)
         {
             mLogger = GetService<Logger<ServiceProvider>>();
         };
@@ -161,6 +166,241 @@ namespace SKIRNIR_NAMESPACE
         [[nodiscard]] bool Contains() const
         {
             return mServiceDefinitionMap->contains(GetServiceId<TService>());
+        }
+
+        // ----- Late registration (post-build) --------------------------
+
+        /**
+         * @brief Registers a singleton on this provider after build.
+         *
+         * Mutates the shared definition map so root and live scopes see the
+         * new registration. See docs/usage/late-registration.md.
+         */
+        template <typename TService>
+        ServiceProvider& AddSingleton(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService>)
+        ServiceProvider& AddSingleton(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddSingleton()
+        {
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
+        ServiceProvider& AddSingleton()
+        {
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TService>
+            requires(
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddSingleton()
+        {
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TService>
+        ServiceProvider& AddSingleton()
+        {
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TService>
+        ServiceProvider& AddSingleton(Arc<TService> element)
+        {
+            service_registration::AddServiceWithInstance<TService, TService>(
+                *mServiceDefinitionMap, std::move(element),
+                LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(not std::is_same_v<TContract, TService> and
+                     std::is_base_of_v<TContract, TService>)
+        ServiceProvider& AddSingleton(Arc<TService> element)
+        {
+            service_registration::AddServiceWithInstance<TContract, TService>(
+                *mServiceDefinitionMap, std::move(element),
+                LifeTime::Singleton);
+            return *this;
+        }
+
+        template <typename TService>
+        ServiceProvider& AddTransient(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService>)
+        ServiceProvider& AddTransient(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
+        ServiceProvider& AddTransient()
+        {
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddTransient()
+        {
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
+            return *this;
+        }
+
+        template <typename TService>
+            requires(
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddTransient()
+        {
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
+            return *this;
+        }
+
+        template <typename TService>
+            requires(
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
+        ServiceProvider& AddTransient()
+        {
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
+            return *this;
+        }
+
+        template <typename TService>
+        ServiceProvider& AddScoped(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(std::is_base_of_v<TContract, TService>)
+        ServiceProvider& AddScoped(const ServiceFactory& factory)
+        {
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, factory);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
+        ServiceProvider& AddScoped()
+        {
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
+            return *this;
+        }
+
+        template <typename TContract, typename TService>
+            requires(
+                std::is_base_of_v<TContract, TService> &&
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddScoped()
+        {
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
+            return *this;
+        }
+
+        template <typename TService>
+            requires(
+                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
+        ServiceProvider& AddScoped()
+        {
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
+            return *this;
+        }
+
+        template <typename TService>
+        ServiceProvider& AddScoped()
+        {
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
+            return *this;
+        }
+
+        /**
+         * @brief Removes every registration of @c TService and evicts that
+         *        type from singleton, keyed-singleton, and live scoped caches.
+         *
+         * @return @c true if at least one registration was removed.
+         */
+        template <typename TService>
+        bool Remove()
+        {
+            const ServiceId id = GetServiceId<TService>();
+            const auto erased  = mServiceDefinitionMap->erase(id);
+
+            mSingletonsCache->erase(id);
+            mScopeCache->erase(id);
+
+            for (auto it = mKeyedSingletonsCache->begin();
+                 it != mKeyedSingletonsCache->end();)
+            {
+                if (it->first.first == id)
+                    it = mKeyedSingletonsCache->erase(it);
+                else
+                    ++it;
+            }
+
+            mScopeCacheRegistry->EraseService(id);
+            return erased > 0;
         }
 
         /**
@@ -398,6 +638,7 @@ namespace SKIRNIR_NAMESPACE
         Arc<ServicesCache>           mSingletonsCache;
         Arc<ServicesCache>           mScopeCache;
         Arc<KeyedServicesCache>      mKeyedSingletonsCache;
+        Arc<ScopeCacheRegistry>      mScopeCacheRegistry;
         WeakArc<IApplication>        mApplication;
     };
 

@@ -17,6 +17,9 @@ constructor parameters and to allow registering services for **dependency inject
   injection.
 - **Optional Dependencies**: `std::optional<Arc<T>>` ctor parameters
   resolve to `std::nullopt` when `T` is not registered.
+- **Late Registration**: register or remove services on a live
+  `ServiceProvider` (`Add*` / `Remove`) for plugin attach/detach. See
+  [Late Registration](docs/usage/late-registration.md).
 - **Non-throwing Resolution**: `TryGetService<T>()` and
   `TryGetKeyedService<T>(key)` return `std::optional<Arc<T>>`.
 - **Captive-Dependency Detection**: `ValidateOnBuild()` flags Singletons

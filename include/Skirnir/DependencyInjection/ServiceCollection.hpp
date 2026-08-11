@@ -9,14 +9,13 @@
 #include <vector>
 
 #include "Skirnir/Common/Arc.hpp"
-#include "Skirnir/Common/ConstructorArgumentTraits.hpp"
 #include "Skirnir/Common/Keyed.hpp"
 #include "Skirnir/Common/LifeTime.hpp"
 #include "Skirnir/Common/Reflection.hpp"
-#include "Skirnir/DependencyInjection/Resolve.hpp"
 #include "Skirnir/DependencyInjection/ServiceDescriptor.hpp"
 #include "Skirnir/DependencyInjection/ServiceId.hpp"
 #include "Skirnir/DependencyInjection/ServiceProvider.hpp"
+#include "Skirnir/DependencyInjection/ServiceRegistration.hpp"
 #include "Skirnir/Logging/Logger.hpp"
 
 namespace SKIRNIR_NAMESPACE
@@ -46,8 +45,8 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         ServiceCollection& AddSingleton(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TService, TService>(LifeTime::Singleton,
-                                                      factory);
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, factory);
 
             return *this;
         }
@@ -64,8 +63,8 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddSingleton(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TContract, TService>(LifeTime::Singleton,
-                                                       factory);
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, factory);
 
             return *this;
         }
@@ -76,8 +75,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddSingleton()
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Singleton);
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
 
             return *this;
         }
@@ -88,7 +88,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddSingleton()
         {
-            AddService<TContract, TService>(LifeTime::Singleton);
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
             return *this;
         }
 
@@ -97,8 +98,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddSingleton()
         {
-            AddServiceWithConstructorArgs<TService, TService>(
-                LifeTime::Singleton);
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
 
             return *this;
         }
@@ -106,7 +108,8 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         ServiceCollection& AddSingleton()
         {
-            AddService<TService, TService>(LifeTime::Singleton);
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton);
 
             return *this;
         }
@@ -114,8 +117,9 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         ServiceCollection& AddSingleton(Arc<TService> element)
         {
-            AddServiceWithInstance<TService, TService>(element,
-                                                       LifeTime::Singleton);
+            service_registration::AddServiceWithInstance<TService, TService>(
+                *mServiceDefinitionMap, std::move(element),
+                LifeTime::Singleton);
 
             return *this;
         }
@@ -125,8 +129,9 @@ namespace SKIRNIR_NAMESPACE
                      std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddSingleton(Arc<TService> element)
         {
-            AddServiceWithInstance<TContract, TService>(element,
-                                                        LifeTime::Singleton);
+            service_registration::AddServiceWithInstance<TContract, TService>(
+                *mServiceDefinitionMap, std::move(element),
+                LifeTime::Singleton);
 
             return *this;
         }
@@ -141,8 +146,8 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         ServiceCollection& AddTransient(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TService, TService>(LifeTime::Transient,
-                                                      factory);
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, factory);
 
             return *this;
         }
@@ -151,8 +156,8 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddTransient(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TContract, TService>(LifeTime::Transient,
-                                                       factory);
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, factory);
 
             return *this;
         }
@@ -163,7 +168,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddTransient()
         {
-            AddService<TContract, TService>(LifeTime::Transient);
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
 
             return *this;
         }
@@ -174,8 +180,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddTransient()
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Transient);
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
 
             return *this;
         }
@@ -185,8 +192,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddTransient()
         {
-            AddServiceWithConstructorArgs<TService, TService>(
-                LifeTime::Transient);
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
 
             return *this;
         }
@@ -196,7 +204,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddTransient()
         {
-            AddService<TService, TService>(LifeTime::Transient);
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient);
 
             return *this;
         }
@@ -211,8 +220,8 @@ namespace SKIRNIR_NAMESPACE
         template <typename TService>
         ServiceCollection& AddScoped(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TService, TService>(LifeTime::Scoped,
-                                                      factory);
+            service_registration::AddServiceWithFactory<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, factory);
 
             return *this;
         }
@@ -229,8 +238,8 @@ namespace SKIRNIR_NAMESPACE
             requires(std::is_base_of_v<TContract, TService>)
         ServiceCollection& AddScoped(const ServiceFactory& factory)
         {
-            AddServiceWithFactory<TContract, TService>(LifeTime::Scoped,
-                                                       factory);
+            service_registration::AddServiceWithFactory<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, factory);
 
             return *this;
         }
@@ -241,7 +250,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddScoped()
         {
-            AddService<TContract, TService>(LifeTime::Scoped);
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
 
             return *this;
         }
@@ -252,8 +262,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddScoped()
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Scoped);
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
 
             return *this;
         }
@@ -263,14 +274,17 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddScoped()
         {
-            AddServiceWithConstructorArgs<TService, TService>(LifeTime::Scoped);
+            service_registration::AddServiceWithConstructorArgs<TService,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
             return *this;
         }
 
         template <typename TService>
         ServiceCollection& AddScoped()
         {
-            AddService<TService, TService>(LifeTime::Scoped);
+            service_registration::AddService<TService, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped);
 
             return *this;
         }
@@ -290,9 +304,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddKeyedSingleton(std::string key)
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Singleton,
-                std::move(key));
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, std::move(key));
             return *this;
         }
 
@@ -302,8 +316,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddKeyedSingleton(std::string key)
         {
-            AddService<TContract, TService>(LifeTime::Singleton,
-                                            std::move(key));
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Singleton, std::move(key));
             return *this;
         }
 
@@ -313,8 +327,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddKeyedScoped(std::string key)
         {
-            AddServiceWithConstructorArgs<TContract, TService>(LifeTime::Scoped,
-                                                               std::move(key));
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, std::move(key));
             return *this;
         }
 
@@ -324,7 +339,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddKeyedScoped(std::string key)
         {
-            AddService<TContract, TService>(LifeTime::Scoped, std::move(key));
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Scoped, std::move(key));
             return *this;
         }
 
@@ -334,9 +350,9 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
         ServiceCollection& AddKeyedTransient(std::string key)
         {
-            AddServiceWithConstructorArgs<TContract, TService>(
-                LifeTime::Transient,
-                std::move(key));
+            service_registration::AddServiceWithConstructorArgs<TContract,
+                                                                TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, std::move(key));
             return *this;
         }
 
@@ -346,8 +362,8 @@ namespace SKIRNIR_NAMESPACE
                 std::tuple_size_v<refl::first_ctor_params_tuple<TService>> == 0)
         ServiceCollection& AddKeyedTransient(std::string key)
         {
-            AddService<TContract, TService>(LifeTime::Transient,
-                                            std::move(key));
+            service_registration::AddService<TContract, TService>(
+                *mServiceDefinitionMap, LifeTime::Transient, std::move(key));
             return *this;
         }
 
@@ -380,171 +396,6 @@ namespace SKIRNIR_NAMESPACE
             }
 
             return MakeArc<ServiceProvider>(mServiceDefinitionMap);
-        }
-
-      protected:
-        template <typename TContract, typename TService>
-        void AddService(const LifeTime lifeTime, std::string key = {})
-        {
-            mServiceDefinitionMap->insert(
-                { GetServiceId<TContract>(),
-                  { .factory =
-                        [](ServiceProvider&, std::set<ServiceDescription>&) {
-                            return MakeArc<TService>();
-                        },
-                    .lifetime = lifeTime,
-                    .key      = std::move(key) } });
-
-            if constexpr (!std::is_base_of_v<ILogger, TContract>)
-                AddTransient<Logger<TContract>>();
-
-            if constexpr (!std::is_base_of_v<ILogger, TService> &&
-                          !std::is_same_v<TContract, TService>)
-                AddTransient<Logger<TService>>();
-        }
-
-        template <typename TContract, typename TService>
-            requires(
-                std::tuple_size_v<refl::first_ctor_params_tuple<TService>> > 0)
-        void AddServiceWithConstructorArgs(const LifeTime lifeTime,
-                                           std::string    key = {})
-        {
-            auto ctorDeps = ComputeCtorServiceIds<TService>();
-
-            mServiceDefinitionMap->insert(
-                { GetServiceId<TContract>(),
-                  { .factory = CreateServiceFactory<TService>(
-                        refl::first_ctor_params_tuple<TService> {}),
-                    .lifetime = lifeTime,
-                    .key      = std::move(key),
-                    .ctorDeps = std::move(ctorDeps) } });
-
-            if constexpr (!std::is_base_of_v<ILogger, TContract>)
-                AddTransient<Logger<TContract>>();
-
-            if constexpr (!std::is_base_of_v<ILogger, TService> &&
-                          !std::is_same_v<TContract, TService>)
-                AddTransient<Logger<TService>>();
-        }
-
-        template <typename TContract, typename TService>
-        void AddServiceWithFactory(const LifeTime        lifeTime,
-                                   const ServiceFactory& factory,
-                                   std::string           key = {})
-        {
-
-            mServiceDefinitionMap->insert(
-                { GetServiceId<TContract>(),
-                  { .factory =
-                        [newFactory = std::move(factory)](
-                            ServiceProvider& serviceProvider,
-                            std::set<ServiceDescription>&
-                                servicesDescriptions) {
-                            servicesDescriptions.erase(ServiceDescription {
-                                .id   = GetServiceId<TContract>(),
-                                .name = refl::type_name<TContract>() });
-
-                            return newFactory(serviceProvider);
-                        },
-                    .lifetime = lifeTime,
-                    .key      = std::move(key) } });
-
-            if constexpr (!std::is_base_of_v<ILogger, TContract>)
-                AddTransient<Logger<TContract>>();
-
-            if constexpr (!std::is_base_of_v<ILogger, TService> &&
-                          !std::is_same_v<TContract, TService>)
-                AddTransient<Logger<TService>>();
-        }
-
-        template <typename TContract, typename TService>
-        void AddServiceWithInstance(Arc<TService>  instance,
-                                    const LifeTime lifeTime,
-                                    std::string    key = {})
-        {
-            mServiceDefinitionMap->insert(
-                { GetServiceId<TContract>(),
-                  { .factory =
-                        [instance = instance](ServiceProvider&,
-                                              std::set<ServiceDescription>&
-                                                  servicesDescriptions) {
-                            servicesDescriptions.erase(ServiceDescription {
-                                .id   = GetServiceId<TContract>(),
-                                .name = refl::type_name<TContract>() });
-
-                            return instance;
-                        },
-                    .lifetime = lifeTime,
-                    .key      = std::move(key) } });
-
-            if constexpr (!std::is_base_of_v<ILogger, TContract>)
-                AddTransient<Logger<TContract>>();
-
-            if constexpr (!std::is_base_of_v<ILogger, TService> &&
-                          !std::is_same_v<TContract, TService>)
-                AddTransient<Logger<TService>>();
-        }
-
-        template <typename TService, typename... Args>
-            requires(std::is_constructible_v<TService, Args...>)
-        InternalServiceFactory CreateServiceFactory(std::tuple<Args...>)
-        {
-            return [](ServiceProvider&              serviceProvider,
-                      std::set<ServiceDescription>& servicesDescriptions) {
-                servicesDescriptions.erase(ServiceDescription {
-                    .id   = GetServiceId<TService>(),
-                    .name = refl::type_name<TService>() });
-
-                return MakeArc<TService>(
-                    Resolve<Args>(serviceProvider, servicesDescriptions)...);
-            };
-        }
-
-        /**
-         * @brief Returns the list of @c ServiceId's that @c TService's
-         *        first constructor depends on (for captive-dependency
-         *        detection and diagnostics).
-         */
-        template <typename TService>
-        static std::vector<ServiceId> ComputeCtorServiceIds()
-        {
-            std::vector<ServiceId> ids;
-            ComputeCtorServiceIdsImpl<TService>(
-                refl::first_ctor_params_tuple<TService> {},
-                ids);
-            return ids;
-        }
-
-        template <typename TService, typename Arg>
-        static void ComputeCtorServiceIdsImpl(Arg, std::vector<ServiceId>& ids)
-        {
-            if constexpr (is_vector_of_arc_v<Arg>)
-            {
-                using U = typename Arg::value_type::element_type;
-                ids.push_back(GetServiceId<U>());
-            }
-            else if constexpr (is_optional_of_arc_v<Arg>)
-            {
-                using U = typename Arg::value_type::element_type;
-                ids.push_back(GetServiceId<U>());
-            }
-            else if constexpr (is_keyed_v<Arg>)
-            {
-                using U = keyed_inner_t<Arg>;
-                ids.push_back(GetServiceId<U>());
-            }
-            else
-            {
-                using U = typename Arg::element_type;
-                ids.push_back(GetServiceId<U>());
-            }
-        }
-
-        template <typename TService, typename... Args>
-        static void ComputeCtorServiceIdsImpl(std::tuple<Args...>,
-                                              std::vector<ServiceId>& ids)
-        {
-            (ComputeCtorServiceIdsImpl<TService>(Args {}, ids), ...);
         }
 
       private:

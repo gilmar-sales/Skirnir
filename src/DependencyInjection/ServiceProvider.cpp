@@ -37,7 +37,14 @@ namespace SKIRNIR_NAMESPACE
 
     Arc<ServiceScope> ServiceProvider::CreateServiceScope() const
     {
-        return MakeArc<ServiceScope>(mServiceDefinitionMap, mSingletonsCache);
+        auto scopeCache = MakeArc<ServicesCache>();
+        mScopeCacheRegistry->Track(scopeCache);
+
+        return MakeArc<ServiceScope>(mServiceDefinitionMap,
+                                     mSingletonsCache,
+                                     mKeyedSingletonsCache,
+                                     mScopeCacheRegistry,
+                                     scopeCache);
     };
 
     void ServiceProvider::ValidateOnBuild()

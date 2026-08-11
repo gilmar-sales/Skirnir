@@ -3,6 +3,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <string_view>
@@ -58,4 +59,36 @@ namespace SKIRNIR_NAMESPACE
     using ServicesCache        = std::map<ServiceId, Arc<void>>;
     using KeyedServicesCache   = std::map<std::pair<ServiceId, std::string>,
                                          Arc<void>>;
+
+    /**
+     * @brief Tracks live scoped-instance caches so @c Remove can evict
+     *        entries from scopes that outlive a late-unregistered service.
+     */
+    struct ScopeCacheRegistry
+    {
+        void Track(const Arc<ServicesCache>& cache)
+        {
+            std::lock_guard lock(mutex);
+            std::erase_if(caches, [](const WeakArc<ServicesCache>& weak) {
+                return weak.expired();
+            });
+            caches.push_back(cache);
+        }
+
+        void EraseService(ServiceId id)
+        {
+            std::lock_guard lock(mutex);
+            std::erase_if(caches, [id](WeakArc<ServicesCache>& weak) {
+                if (auto cache = weak.lock())
+                {
+                    cache->erase(id);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        std::mutex                          mutex;
+        std::vector<WeakArc<ServicesCache>> caches;
+    };
 } // namespace SKIRNIR_NAMESPACE

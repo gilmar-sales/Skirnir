@@ -15,9 +15,15 @@ namespace SKIRNIR_NAMESPACE
          *
          * @param serviceDefinitionMap Map of service definitions
          * @param singletonsCache      Cache for singleton instances
+         * @param keyedSingletonsCache Shared keyed-singleton cache
+         * @param scopeCacheRegistry   Registry of live scoped caches
+         * @param scopeCache           This scope's instance cache
          */
         ServiceScope(const Arc<ServiceDefinitionMap>& serviceDefinitionMap,
-                     const Arc<ServicesCache>&        singletonsCache);
+                     const Arc<ServicesCache>&        singletonsCache,
+                     const Arc<KeyedServicesCache>&   keyedSingletonsCache,
+                     const Arc<ScopeCacheRegistry>&   scopeCacheRegistry,
+                     const Arc<ServicesCache>&        scopeCache);
 
         /**
          * @brief Gets the ServiceProvider for this scope.
@@ -34,6 +40,8 @@ namespace SKIRNIR_NAMESPACE
         Arc<ServiceDefinitionMap> mServiceDefinitionMap;
         Arc<ServicesCache>        mSingletonsCache;
         Arc<ServicesCache>        mScopeCache;
+        Arc<KeyedServicesCache>   mKeyedSingletonsCache;
+        Arc<ScopeCacheRegistry>   mScopeCacheRegistry;
     };
 
 } // namespace SKIRNIR_NAMESPACE
