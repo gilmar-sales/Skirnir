@@ -2,6 +2,7 @@
 
 #include "Skirnir/Logging/LogLevel.hpp"
 
+#include <chrono>
 #include <cstring>
 #include <format>
 #include <stdexcept>
@@ -43,7 +44,14 @@ namespace SKIRNIR_NAMESPACE::detail
         return "?";
     }
 
-    std::string SanitizeForLog(std::string_view s)
+    std::string FormatTimestamp(std::chrono::system_clock::time_point tp)
+    {
+        // Explicit chrono-specs: empty "{}" / ostream<< on sys_time is fragile
+        // on some libstdc++ / MinGW setups (throws in the format scanner).
+        return std::format("{:%F %T}", tp);
+    }
+
+    std::string SanitizeForLog(std::string_view s, bool preserveTabs)
     {
         std::string out;
         out.reserve(s.size());
@@ -58,7 +66,10 @@ namespace SKIRNIR_NAMESPACE::detail
                     out.append("\\n");
                     break;
                 case '\t':
-                    out.append("\\t");
+                    if (preserveTabs)
+                        out.push_back('\t');
+                    else
+                        out.append("\\t");
                     break;
                 case '\0':
                     out.append("\\0");

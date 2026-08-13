@@ -20,8 +20,8 @@ namespace SKIRNIR_NAMESPACE
         const std::string prefix =
             std::format("[{}] {} '{}': ",
                         detail::LevelName(r.level),
-                        r.timestamp,
-                        detail::SanitizeForLog(r.category));
+                        detail::FormatTimestamp(r.timestamp),
+                        detail::SanitizeForLog(r.category, true));
 
         std::string scopesStr;
         if (!r.scopes.empty())
@@ -31,13 +31,14 @@ namespace SKIRNIR_NAMESPACE
             {
                 if (i)
                     scopesStr.push_back('/');
-                scopesStr.append(detail::SanitizeForLog(r.scopes[i]));
+                scopesStr.append(detail::SanitizeForLog(r.scopes[i], true));
             }
             scopesStr += "] ";
         }
 
         std::lock_guard<std::mutex> lock(mMutex);
         (void) mUseColors; // color toggle reserved for future fmt branch
-        std::print("{}{}{}\n", prefix, scopesStr, detail::SanitizeForLog(r.message));
+        std::print("{}{}{}\n", prefix, scopesStr,
+                   detail::SanitizeForLog(r.message, true));
     }
 } // namespace SKIRNIR_NAMESPACE

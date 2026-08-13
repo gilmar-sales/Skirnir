@@ -2,6 +2,7 @@
 
 #include "Skirnir/Logging/LogLevel.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
@@ -12,7 +13,10 @@ namespace SKIRNIR_NAMESPACE::detail
 {
     const char* LevelName(LogLevel lvl);
 
-    std::string SanitizeForLog(std::string_view s);
+    std::string SanitizeForLog(std::string_view s, bool preserveTabs = false);
+
+    /** Formats a log timestamp without empty chrono-specs / locale streaming. */
+    std::string FormatTimestamp(std::chrono::system_clock::time_point tp);
 
     struct LogFileOpenResult
     {

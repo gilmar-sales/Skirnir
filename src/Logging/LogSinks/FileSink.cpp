@@ -60,7 +60,8 @@ namespace SKIRNIR_NAMESPACE
     void FileSink::Write(const LogRecord& r)
     {
         std::ostringstream oss;
-        oss << '[' << detail::LevelName(r.level) << "] " << r.timestamp << " '"
+        oss << '[' << detail::LevelName(r.level) << "] "
+            << detail::FormatTimestamp(r.timestamp) << " '"
             << detail::SanitizeForLog(r.category) << "': ";
         if (!r.scopes.empty())
         {
