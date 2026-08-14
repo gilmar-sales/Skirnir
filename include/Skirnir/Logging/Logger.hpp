@@ -6,16 +6,15 @@
 #include "Skirnir/Logging/LogRecord.hpp"
 #include "Skirnir/Logging/LogSinks/ILogSink.hpp"
 #include "Skirnir/Logging/LogSinks/AsyncSink.hpp"
+#include "Skirnir/Logging/Format.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <cstddef>
-#include <format>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <print>
 #include <shared_mutex>
 #include <string>
 #include <string_view>
@@ -190,21 +189,21 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename... TArgs>
-        inline void LogTrace(std::format_string<TArgs...> fmt, TArgs&&... args)
+        inline void LogTrace(detail::FormatString<TArgs...> fmt, TArgs&&... args)
         {
             DispatchImpl(LogLevel::Trace, std::source_location::current(), fmt,
                          std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void LogDebug(std::format_string<TArgs...> fmt, TArgs&&... args)
+        inline void LogDebug(detail::FormatString<TArgs...> fmt, TArgs&&... args)
         {
             DispatchImpl(LogLevel::Debug, std::source_location::current(), fmt,
                          std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void LogInformation(std::format_string<TArgs...> fmt,
+        inline void LogInformation(detail::FormatString<TArgs...> fmt,
                                    TArgs&&... args)
         {
             DispatchImpl(LogLevel::Information, std::source_location::current(),
@@ -212,7 +211,7 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename... TArgs>
-        inline void LogWarning(std::format_string<TArgs...> fmt,
+        inline void LogWarning(detail::FormatString<TArgs...> fmt,
                                TArgs&&... args)
         {
             DispatchImpl(LogLevel::Warning, std::source_location::current(),
@@ -220,21 +219,21 @@ namespace SKIRNIR_NAMESPACE
         }
 
         template <typename... TArgs>
-        inline void LogError(std::format_string<TArgs...> fmt, TArgs&&... args)
+        inline void LogError(detail::FormatString<TArgs...> fmt, TArgs&&... args)
         {
             DispatchImpl(LogLevel::Error, std::source_location::current(), fmt,
                          std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void LogFatal(std::format_string<TArgs...> fmt, TArgs&&... args)
+        inline void LogFatal(detail::FormatString<TArgs...> fmt, TArgs&&... args)
         {
             DispatchImpl(LogLevel::Fatal, std::source_location::current(), fmt,
                          std::forward<TArgs>(args)...);
         }
 
         template <typename... TArgs>
-        inline void Assert(bool assertion, std::format_string<TArgs...> fmt,
+        inline void Assert(bool assertion, detail::FormatString<TArgs...> fmt,
                            TArgs&&... args)
         {
 #ifndef NDEBUG
@@ -249,15 +248,14 @@ namespace SKIRNIR_NAMESPACE
         template <typename... TArgs>
         inline void DispatchImpl(LogLevel             lvl,
                                  std::source_location loc,
-                                 std::format_string<TArgs...>
-                                     fmt,
+                                 detail::FormatString<TArgs...> fmt,
                                  TArgs&&... args)
         {
             if (mLogLevel > lvl)
                 return;
 
             std::string message =
-                std::format(fmt, std::forward<TArgs>(args)...);
+                detail::Format(fmt, std::forward<TArgs>(args)...);
 
             LogRecord record;
             record.level     = lvl;

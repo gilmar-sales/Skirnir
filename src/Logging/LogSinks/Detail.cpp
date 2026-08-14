@@ -1,10 +1,10 @@
 #include "Detail.hpp"
 
 #include "Skirnir/Logging/LogLevel.hpp"
+#include "Skirnir/Logging/Format.hpp"
 
 #include <chrono>
 #include <cstring>
-#include <format>
 #include <stdexcept>
 #include <system_error>
 
@@ -48,7 +48,7 @@ namespace SKIRNIR_NAMESPACE::detail
     {
         // Explicit chrono-specs: empty "{}" / ostream<< on sys_time is fragile
         // on some libstdc++ / MinGW setups (throws in the format scanner).
-        return std::format("{:%F %T}", tp);
+        return detail::Format("{:%F %T}", tp);
     }
 
     std::string SanitizeForLog(std::string_view s, bool preserveTabs)
@@ -91,7 +91,7 @@ namespace SKIRNIR_NAMESPACE::detail
                     const auto u = static_cast<unsigned char>(c);
                     if (u < 0x20 || u == 0x7f)
                     {
-                        out.append(std::format("\\x{:02x}", u));
+                        out.append(detail::Format("\\x{:02x}", u));
                     }
                     else
                     {

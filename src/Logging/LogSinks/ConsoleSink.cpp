@@ -1,10 +1,9 @@
 #include "Detail.hpp"
 #include "Skirnir/Logging/LogRecord.hpp"
 #include "Skirnir/Logging/LogSinks/ConsoleSink.hpp"
+#include "Skirnir/Logging/Format.hpp"
 
-#include <format>
 #include <mutex>
-#include <print>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,7 +17,7 @@ namespace SKIRNIR_NAMESPACE
     void ConsoleSink::Write(const LogRecord& r)
     {
         const std::string prefix =
-            std::format("[{}] {} '{}': ",
+            detail::Format("[{}] {} '{}': ",
                         detail::LevelName(r.level),
                         detail::FormatTimestamp(r.timestamp),
                         detail::SanitizeForLog(r.category, true));
@@ -38,7 +37,12 @@ namespace SKIRNIR_NAMESPACE
 
         std::lock_guard<std::mutex> lock(mMutex);
         (void) mUseColors; // color toggle reserved for future fmt branch
+#ifdef SKIRNIR_USE_FMT
+        fmt::print("{}{}{}\n", prefix, scopesStr,
+                   detail::SanitizeForLog(r.message, true));
+#else
         std::print("{}{}{}\n", prefix, scopesStr,
                    detail::SanitizeForLog(r.message, true));
+#endif
     }
 } // namespace SKIRNIR_NAMESPACE
